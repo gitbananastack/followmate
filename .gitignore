@@ -1,0 +1,61 @@
+# Root Git ignore for Followmate project
+
+# Java / Maven
+/target/
+**/target/
+*.log
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+/.idea/
+/.settings/
+/*.ipr
+/
+# Spring Boot
+*.properties
+!backend/src/main/resources/application.properties
+
+# Node / Frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.*.local
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/pnpm-debug.log*
+/frontend/package-lock.json
+/frontend/pnpm-lock.yaml
+/frontend/.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.log
+
+# Git
+# Keep root .gitignore tracked
+!.gitignore
+
+# Build tools
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+
+# Misc
+coverage/
+coverage-final.json
