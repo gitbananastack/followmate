@@ -1,6 +1,7 @@
 package com.followmate.lead.controller;
 
 import com.followmate.common.ApiResponse;
+import com.followmate.lead.dto.LeadFieldsUpdateRequest;
 import com.followmate.lead.dto.LeadNoteRequest;
 import com.followmate.lead.dto.LeadRequest;
 import com.followmate.lead.dto.LeadResponse;
@@ -52,6 +53,15 @@ public class LeadController {
     ) {
         return ResponseEntity.ok(ApiResponse.success("Lead stage updated successfully",
                 leadService.updateLeadStage(id, request.getCurrentStage())));
+    }
+
+    @PutMapping("/{id}/fields")
+    public ResponseEntity<ApiResponse<LeadResponse>> updateLeadFields(
+            @PathVariable Long id,
+            @Valid @RequestBody LeadFieldsUpdateRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success("Lead fields updated successfully",
+                leadService.updateLeadFields(id, request.getFields())));
     }
 
     @PostMapping("/{id}/notes")

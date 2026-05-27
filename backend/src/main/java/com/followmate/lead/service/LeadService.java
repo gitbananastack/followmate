@@ -81,6 +81,16 @@ public class LeadService {
         return toResponse(leadRepository.save(lead));
     }
 
+    @Transactional
+    public LeadResponse updateLeadFields(Long id, List<LeadFieldRequest> fields) {
+        Lead lead = findLeadById(id);
+        validateTemplateFields(lead.getTemplateId(), fields);
+        leadDynamicFieldRepository.deleteByLeadId(lead.getId());
+        saveDynamicFields(lead.getId(), fields);
+        Lead savedLead = leadRepository.save(lead);
+        return toResponse(savedLead);
+    }
+
     public LeadResponse addNoteToLead(Long id, LeadNoteRequest request) {
         Lead lead = findLeadById(id);
         leadNoteRepository.save(LeadNote.builder()

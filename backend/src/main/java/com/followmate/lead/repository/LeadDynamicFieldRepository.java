@@ -8,4 +8,6 @@ import java.util.List;
 public interface LeadDynamicFieldRepository extends JpaRepository<LeadDynamicField, Long> {
 
     List<LeadDynamicField> findByLeadId(Long leadId);
+
+    void deleteByLeadId(Long leadId);
 }

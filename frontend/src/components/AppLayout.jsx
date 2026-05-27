@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
+  { label: "Pipeline", path: "/pipeline" },
   { label: "Leads", path: "/leads" },
   { label: "Follow-ups", path: "/followups" },
 ];
@@ -51,7 +52,7 @@ function AppLayout() {
         <Outlet />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-3 border-t border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/10 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/10 md:hidden">
         {navItems.map((item) => (
           <NavLink key={item.path} to={item.path} className={navLinkClass}>
             <span className="block text-center">{item.label}</span>

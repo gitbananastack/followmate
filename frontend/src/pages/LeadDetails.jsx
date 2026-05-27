@@ -44,9 +44,12 @@ function LeadDetails() {
     followupDate: "",
     remarks: "",
   });
+  const [fieldForm, setFieldForm] = useState([]);
   const [noteText, setNoteText] = useState("");
+  const [isEditingFields, setIsEditingFields] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFieldsSubmitting, setIsFieldsSubmitting] = useState(false);
   const [isStageUpdating, setIsStageUpdating] = useState(false);
   const [isFollowupSubmitting, setIsFollowupSubmitting] = useState(false);
   const [completingFollowupId, setCompletingFollowupId] = useState(null);
@@ -60,6 +63,7 @@ function LeadDetails() {
       const leadData = response.data?.data ?? null;
       setLead(leadData);
       setSelectedStage(leadData?.currentStage ?? "");
+      setFieldForm(leadData?.fields ?? []);
     } catch (fetchError) {
       const message =
         fetchError.response?.data?.message || "Unable to load lead details";
@@ -145,6 +149,50 @@ function LeadDetails() {
       setError(message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleFieldChange = (fieldName, fieldValue) => {
+    setFieldForm((currentFields) =>
+      currentFields.map((field) =>
+        field.fieldName === fieldName ? { ...field, fieldValue } : field
+      )
+    );
+  };
+
+  const handleEditFields = () => {
+    setFieldForm(lead?.fields ?? []);
+    setIsEditingFields(true);
+  };
+
+  const handleCancelFieldEdit = () => {
+    setFieldForm(lead?.fields ?? []);
+    setIsEditingFields(false);
+  };
+
+  const handleSaveFields = async (event) => {
+    event.preventDefault();
+    setIsFieldsSubmitting(true);
+    setError("");
+
+    try {
+      const response = await api.put(`/api/leads/${id}/fields`, {
+        fields: fieldForm.map((field) => ({
+          fieldName: field.fieldName,
+          fieldValue: field.fieldValue,
+        })),
+      });
+      const updatedLead = response.data?.data;
+      setLead(updatedLead);
+      setFieldForm(updatedLead?.fields ?? []);
+      setIsEditingFields(false);
+      await fetchLead();
+    } catch (fieldError) {
+      const message =
+        fieldError.response?.data?.message || "Unable to update lead fields";
+      setError(message);
+    } finally {
+      setIsFieldsSubmitting(false);
     }
   };
 
@@ -307,25 +355,81 @@ function LeadDetails() {
           </section>
 
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">
-              Dynamic Fields
-            </h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-semibold text-slate-950">
+                Dynamic Fields
+              </h2>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {(lead.fields ?? []).map((field) => (
-                <div
-                  key={field.fieldName}
-                  className="rounded-lg border border-slate-100 bg-slate-50 p-3"
+              {!isEditingFields ? (
+                <button
+                  type="button"
+                  onClick={handleEditFields}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600 sm:w-auto"
                 >
-                  <p className="text-sm font-medium text-slate-500">
-                    {field.fieldName}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">
-                    {field.fieldValue || "-"}
-                  </p>
-                </div>
-              ))}
+                  Edit
+                </button>
+              ) : null}
             </div>
+
+            {isEditingFields ? (
+              <form className="mt-4" onSubmit={handleSaveFields}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {fieldForm.map((field) => (
+                    <div key={field.fieldName}>
+                      <label
+                        htmlFor={`field-${field.fieldName}`}
+                        className="mb-2 block text-sm font-medium text-slate-700"
+                      >
+                        {field.fieldName}
+                      </label>
+                      <input
+                        id={`field-${field.fieldName}`}
+                        value={field.fieldValue ?? ""}
+                        onChange={(event) =>
+                          handleFieldChange(field.fieldName, event.target.value)
+                        }
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                        required
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="submit"
+                    disabled={isFieldsSubmitting}
+                    className="rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isFieldsSubmitting ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelFieldEdit}
+                    disabled={isFieldsSubmitting}
+                    className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {(lead.fields ?? []).map((field) => (
+                  <div
+                    key={field.fieldName}
+                    className="rounded-lg border border-slate-100 bg-slate-50 p-3"
+                  >
+                    <p className="text-sm font-medium text-slate-500">
+                      {field.fieldName}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-950">
+                      {field.fieldValue || "-"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
