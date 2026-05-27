@@ -67,4 +67,10 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResponse.success("Organization deactivated successfully",
                 organizationService.deactivateOrganization(id)));
     }
+
+    @PatchMapping("/{id}/suspend")
+    public ResponseEntity<ApiResponse<OrganizationResponse>> suspendOrganization(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Organization suspended successfully",
+                organizationService.suspendOrganization(id)));
+    }
 }

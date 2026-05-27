@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import {
+  decodeJwtPayload,
+  getDashboardPathForRole,
+  saveAuthSession,
+} from "../utils/auth";
 
 const DEFAULT_EMAIL = "admin@followmate.com";
 const DEFAULT_PASSWORD = "admin123";
@@ -22,14 +27,21 @@ function Login() {
       });
 
       const token = response.data?.token ?? response.data?.data?.token;
+      const responseRole = response.data?.role ?? response.data?.data?.role;
 
       if (!token) {
         throw new Error("Login succeeded but no token was returned.");
       }
 
-      localStorage.setItem("token", token);
+      const role = responseRole || decodeJwtPayload(token).role;
+
+      if (!role) {
+        throw new Error("Login succeeded but no role was returned.");
+      }
+
+      saveAuthSession({ token, role });
       alert("Login successful");
-      navigate("/dashboard");
+      navigate(getDashboardPathForRole(role), { replace: true });
     } catch (error) {
       const message =
         error.response?.data?.message || error.message || "Login failed";

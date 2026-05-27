@@ -15,6 +15,7 @@ public class OrganizationService {
 
     private static final String ACTIVE_STATUS = "ACTIVE";
     private static final String INACTIVE_STATUS = "INACTIVE";
+    private static final String SUSPENDED_STATUS = "SUSPENDED";
 
     private final OrganizationRepository organizationRepository;
 
@@ -62,6 +63,12 @@ public class OrganizationService {
     public OrganizationResponse deactivateOrganization(Long id) {
         Organization organization = findOrganizationById(id);
         organization.setStatus(INACTIVE_STATUS);
+        return toResponse(organizationRepository.save(organization));
+    }
+
+    public OrganizationResponse suspendOrganization(Long id) {
+        Organization organization = findOrganizationById(id);
+        organization.setStatus(SUSPENDED_STATUS);
         return toResponse(organizationRepository.save(organization));
     }
 

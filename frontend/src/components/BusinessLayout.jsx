@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { clearAuthSession } from "../utils/auth";
 import { getResponseList, isOverdueFollowup } from "../utils/crm";
 
-const navItems = [
+const businessNavItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Pipeline", path: "/pipeline" },
   { label: "Leads", path: "/leads" },
   { label: "Follow-ups", path: "/followups" },
+  { label: "Settings", path: "/settings" },
 ];
 
-function AppLayout() {
+function BusinessLayout() {
   const navigate = useNavigate();
   const [overdueCount, setOverdueCount] = useState(0);
 
@@ -28,7 +30,6 @@ function AppLayout() {
     };
 
     fetchOverdueCount();
-
     window.addEventListener("followups:changed", fetchOverdueCount);
 
     return () => {
@@ -37,7 +38,7 @@ function AppLayout() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    clearAuthSession();
     navigate("/login", { replace: true });
   };
 
@@ -49,6 +50,17 @@ function AppLayout() {
         : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
     ].join(" ");
 
+  const renderNavLabel = (item) => (
+    <span className="flex items-center justify-between gap-2">
+      <span>{item.label}</span>
+      {item.path === "/followups" && overdueCount > 0 ? (
+        <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
+          {overdueCount}
+        </span>
+      ) : null}
+    </span>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-0">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white px-4 py-5 md:flex md:flex-col">
@@ -58,16 +70,9 @@ function AppLayout() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
-          {navItems.map((item) => (
+          {businessNavItems.map((item) => (
             <NavLink key={item.path} to={item.path} className={navLinkClass}>
-              <span className="flex items-center justify-between gap-2">
-                <span>{item.label}</span>
-                {item.path === "/followups" && overdueCount > 0 ? (
-                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
-                    {overdueCount}
-                  </span>
-                ) : null}
-              </span>
+              {renderNavLabel(item)}
             </NavLink>
           ))}
         </nav>
@@ -85,9 +90,13 @@ function AppLayout() {
         <Outlet />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/10 md:hidden">
-        {navItems.map((item) => (
-          <NavLink key={item.path} to={item.path} className={navLinkClass}>
+      <nav className="fixed inset-x-0 bottom-0 z-10 flex gap-2 overflow-x-auto border-t border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/10 md:hidden">
+        {businessNavItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={(state) => `${navLinkClass(state)} shrink-0`}
+          >
             <span className="relative block text-center">
               {item.label}
               {item.path === "/followups" && overdueCount > 0 ? (
@@ -103,4 +112,4 @@ function AppLayout() {
   );
 }
 
-export default AppLayout;
+export default BusinessLayout;
