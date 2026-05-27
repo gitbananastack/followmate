@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { getResponseList, isOverdueFollowup } from "../utils/crm";
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
@@ -9,6 +12,29 @@ const navItems = [
 
 function AppLayout() {
   const navigate = useNavigate();
+  const [overdueCount, setOverdueCount] = useState(0);
+
+  useEffect(() => {
+    const fetchOverdueCount = async () => {
+      try {
+        const response = await api.get("/api/followups");
+        const overdueFollowups = getResponseList(response).filter(
+          isOverdueFollowup
+        );
+        setOverdueCount(overdueFollowups.length);
+      } catch (error) {
+        setOverdueCount(0);
+      }
+    };
+
+    fetchOverdueCount();
+
+    window.addEventListener("followups:changed", fetchOverdueCount);
+
+    return () => {
+      window.removeEventListener("followups:changed", fetchOverdueCount);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -34,7 +60,14 @@ function AppLayout() {
         <nav className="flex flex-1 flex-col gap-1">
           {navItems.map((item) => (
             <NavLink key={item.path} to={item.path} className={navLinkClass}>
-              {item.label}
+              <span className="flex items-center justify-between gap-2">
+                <span>{item.label}</span>
+                {item.path === "/followups" && overdueCount > 0 ? (
+                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
+                    {overdueCount}
+                  </span>
+                ) : null}
+              </span>
             </NavLink>
           ))}
         </nav>
@@ -55,7 +88,14 @@ function AppLayout() {
       <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/10 md:hidden">
         {navItems.map((item) => (
           <NavLink key={item.path} to={item.path} className={navLinkClass}>
-            <span className="block text-center">{item.label}</span>
+            <span className="relative block text-center">
+              {item.label}
+              {item.path === "/followups" && overdueCount > 0 ? (
+                <span className="absolute -right-1 -top-2 rounded-full bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">
+                  {overdueCount}
+                </span>
+              ) : null}
+            </span>
           </NavLink>
         ))}
       </nav>

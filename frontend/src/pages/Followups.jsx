@@ -147,6 +147,7 @@ function Followups() {
             : followup
         )
       );
+      window.dispatchEvent(new Event("followups:changed"));
     } catch (completeError) {
       const message =
         completeError.response?.data?.message ||
@@ -216,11 +217,16 @@ function Followups() {
             const requirement =
               getLeadField(lead, "artworkName") ||
               getLeadField(lead, "requirement");
+            const overdue = isOverdueFollowup(followup);
 
             return (
               <article
                 key={followup.id}
-                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                className={`rounded-xl border p-5 shadow-sm ${
+                  overdue
+                    ? "border-red-200 bg-red-50"
+                    : "border-slate-200 bg-white"
+                }`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>

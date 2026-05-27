@@ -11,6 +11,30 @@ export function getLeadField(lead, fieldName) {
   );
 }
 
+export const PHONE_FIELD_NAMES = [
+  "phoneNumber",
+  "phone",
+  "mobile",
+  "mobileNumber",
+  "customerPhone",
+];
+
+export function isPhoneField(fieldName) {
+  return PHONE_FIELD_NAMES.includes(fieldName);
+}
+
+export function getPhoneNumber(lead) {
+  for (const fieldName of PHONE_FIELD_NAMES) {
+    const phoneNumber = getLeadField(lead, fieldName);
+
+    if (phoneNumber) {
+      return phoneNumber;
+    }
+  }
+
+  return "";
+}
+
 export function getLeadSummary(leadOrLeadId, leadDetails) {
   const lead = leadDetails ?? leadOrLeadId;
   const leadId =

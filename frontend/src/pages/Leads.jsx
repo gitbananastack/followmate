@@ -2,13 +2,29 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LeadCard from "../components/LeadCard";
 import api from "../services/api";
-import { getResponseList } from "../utils/crm";
+import { getResponseList, isPhoneField } from "../utils/crm";
 
 const initialFormState = {};
 
 const DEFAULT_ORGANIZATION_ID = 1;
 const DEFAULT_TEMPLATE_ID = 1;
 const DEFAULT_WORKFLOW_ID = 1;
+const DEFAULT_COUNTRY_CODE = "+91";
+
+const countryCodeOptions = [
+  { label: "India", code: "+91" },
+  { label: "UAE", code: "+971" },
+  { label: "Saudi Arabia", code: "+966" },
+  { label: "Qatar", code: "+974" },
+  { label: "Oman", code: "+968" },
+  { label: "Kuwait", code: "+965" },
+  { label: "Bahrain", code: "+973" },
+  { label: "United States", code: "+1" },
+  { label: "United Kingdom", code: "+44" },
+  { label: "Australia", code: "+61" },
+  { label: "Canada", code: "+1" },
+  { label: "Singapore", code: "+65" },
+];
 
 function getInputType(fieldType) {
   if (fieldType === "NUMBER") {
@@ -27,6 +43,30 @@ function getEmptyTemplateForm(fields) {
     formValues[field.fieldName] = field.fieldType === "CHECKBOX" ? "false" : "";
     return formValues;
   }, {});
+}
+
+function getEmptyCountryCodeForm(fields) {
+  return fields.reduce((countryCodes, field) => {
+    if (isPhoneField(field.fieldName)) {
+      countryCodes[field.fieldName] = DEFAULT_COUNTRY_CODE;
+    }
+
+    return countryCodes;
+  }, {});
+}
+
+function formatPhoneValue(phoneValue, countryCode) {
+  const trimmedValue = String(phoneValue || "").replace(/\s/g, "");
+
+  if (!trimmedValue) {
+    return "";
+  }
+
+  if (trimmedValue.startsWith("+")) {
+    return trimmedValue;
+  }
+
+  return `${countryCode}${trimmedValue.replace(/\D/g, "")}`;
 }
 
 function leadMatchesStage(lead, stage) {
@@ -50,6 +90,7 @@ function Leads() {
   const [workflowStages, setWorkflowStages] = useState([]);
   const [templateFields, setTemplateFields] = useState([]);
   const [form, setForm] = useState(initialFormState);
+  const [countryCodes, setCountryCodes] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,6 +140,7 @@ function Leads() {
         );
         setTemplateFields(fields);
         setForm(getEmptyTemplateForm(fields));
+        setCountryCodes(getEmptyCountryCodeForm(fields));
       } catch (templateError) {
         const message =
           templateError.response?.data?.message || "Unable to load lead form";
@@ -126,6 +168,14 @@ function Leads() {
     }));
   };
 
+  const handleCountryCodeChange = (event) => {
+    const { name, value } = event.target;
+    setCountryCodes((currentCountryCodes) => ({
+      ...currentCountryCodes,
+      [name]: value,
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -138,11 +188,17 @@ function Leads() {
         workflowId: DEFAULT_WORKFLOW_ID,
         fields: templateFields.map((field) => ({
           fieldName: field.fieldName,
-          fieldValue: form[field.fieldName] ?? "",
+          fieldValue: isPhoneField(field.fieldName)
+            ? formatPhoneValue(
+                form[field.fieldName],
+                countryCodes[field.fieldName] ?? DEFAULT_COUNTRY_CODE
+              )
+            : form[field.fieldName] ?? "",
         })),
       });
 
       setForm(getEmptyTemplateForm(templateFields));
+      setCountryCodes(getEmptyCountryCodeForm(templateFields));
       setShowForm(false);
       await fetchLeadData();
     } catch (submitError) {
@@ -250,7 +306,41 @@ function Leads() {
 
                 {!["TEXTAREA", "DROPDOWN", "CHECKBOX"].includes(
                   field.fieldType
-                ) ? (
+                ) && isPhoneField(field.fieldName) ? (
+                  <div className="flex gap-2">
+                    <select
+                      aria-label={`${field.fieldLabel} country code`}
+                      name={field.fieldName}
+                      value={
+                        countryCodes[field.fieldName] ?? DEFAULT_COUNTRY_CODE
+                      }
+                      onChange={handleCountryCodeChange}
+                      className="w-32 shrink-0 rounded-lg border border-slate-200 px-2 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                    >
+                      {countryCodeOptions.map((country) => (
+                        <option
+                          key={`${country.label}-${country.code}`}
+                          value={country.code}
+                        >
+                          {country.label} {country.code}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      id={field.fieldName}
+                      name={field.fieldName}
+                      type="tel"
+                      value={form[field.fieldName] ?? ""}
+                      onChange={handleChange}
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      required={Boolean(field.mandatory)}
+                    />
+                  </div>
+                ) : null}
+
+                {!["TEXTAREA", "DROPDOWN", "CHECKBOX"].includes(
+                  field.fieldType
+                ) && !isPhoneField(field.fieldName) ? (
                   <input
                     id={field.fieldName}
                     name={field.fieldName}

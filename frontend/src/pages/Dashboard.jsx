@@ -112,6 +112,16 @@ function Dashboard() {
         </div>
       ) : null}
 
+      {!isLoading && overdueFollowups.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => navigate("/followups?type=OVERDUE")}
+          className="mb-5 w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-left text-sm font-semibold text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100"
+        >
+          You have {overdueFollowups.length} overdue follow-ups
+        </button>
+      ) : null}
+
       <section className="grid gap-6">
         <section>
           <h2 className="mb-3 text-lg font-semibold text-slate-950">

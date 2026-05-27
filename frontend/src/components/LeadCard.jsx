@@ -4,6 +4,7 @@ import {
   getFollowupCategory,
   isOverdueFollowup,
 } from "../utils/crm";
+import ContactActions from "./ContactActions";
 
 function getLeadFollowupBadge(followups) {
   if (followups.length === 0) {
@@ -92,13 +93,16 @@ function LeadCard({
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={onViewDetails}
-        className="mt-4 w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600 sm:w-auto"
-      >
-        View Details
-      </button>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <ContactActions lead={lead} />
+        <button
+          type="button"
+          onClick={onViewDetails}
+          className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600"
+        >
+          View Details
+        </button>
+      </div>
     </article>
   );
 }
