@@ -40,7 +40,12 @@ function getLeadFollowupBadge(followups) {
   };
 }
 
-function LeadCard({ followups = [], lead, onViewDetails }) {
+function LeadCard({
+  followups = [],
+  lead,
+  onViewDetails,
+  showFollowupBadge = true,
+}) {
   const customerName = getLeadField(lead, "customerName");
   const artworkName = getLeadField(lead, "artworkName");
   const requirement = getLeadField(lead, "requirement");
@@ -70,11 +75,13 @@ function LeadCard({ followups = [], lead, onViewDetails }) {
           <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
             Stage: {lead.currentStage || "NEW"}
           </span>
-          <span
-            className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${followupBadge.className}`}
-          >
-            {followupBadge.label}
-          </span>
+          {showFollowupBadge ? (
+            <span
+              className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${followupBadge.className}`}
+            >
+              {followupBadge.label}
+            </span>
+          ) : null}
         </div>
       </div>
 

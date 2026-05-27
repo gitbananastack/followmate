@@ -1,58 +1,14 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import LeadCard from "../components/LeadCard";
 import api from "../services/api";
-import {
-  getResponseList,
-  isOverdueFollowup,
-} from "../utils/crm";
+import { getResponseList } from "../utils/crm";
 
-const initialFormState = {
-};
+const initialFormState = {};
 
 const DEFAULT_ORGANIZATION_ID = 1;
 const DEFAULT_TEMPLATE_ID = 1;
 const DEFAULT_WORKFLOW_ID = 1;
-
-const filterOptions = [
-  { key: "ALL", label: "All" },
-  { key: "NEW", label: "New" },
-  { key: "PENDING", label: "Pending" },
-  { key: "COMPLETED", label: "Completed" },
-  { key: "OVERDUE", label: "Overdue" },
-  { key: "NO_FOLLOWUP", label: "No Follow-up" },
-];
-
-function getLeadFollowups(leadId, followups) {
-  return followups.filter((followup) => followup.leadId === leadId);
-}
-
-function leadMatchesFilter(lead, followups, filter) {
-  const leadFollowups = getLeadFollowups(lead.id, followups);
-
-  if (filter === "ALL") {
-    return true;
-  }
-
-  if (filter === "NEW") {
-    return lead.status === "NEW";
-  }
-
-  if (filter === "NO_FOLLOWUP") {
-    return leadFollowups.length === 0;
-  }
-
-  if (filter === "OVERDUE") {
-    return leadFollowups.some(isOverdueFollowup);
-  }
-
-  return leadFollowups.some((followup) => followup.status === filter);
-}
-
-function getFilterCount(leads, followups, filter) {
-  return leads.filter((lead) => leadMatchesFilter(lead, followups, filter))
-    .length;
-}
 
 function getInputType(fieldType) {
   if (fieldType === "NUMBER") {
@@ -73,12 +29,26 @@ function getEmptyTemplateForm(fields) {
   }, {});
 }
 
+function leadMatchesStage(lead, stage) {
+  if (!stage) {
+    return true;
+  }
+
+  return lead.currentStage === stage;
+}
+
+function getStageCount(leads, stage) {
+  return leads.filter((lead) => leadMatchesStage(lead, stage)).length;
+}
+
 function Leads() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedStage = searchParams.get("stage") || "";
+
   const [leads, setLeads] = useState([]);
-  const [followups, setFollowups] = useState([]);
+  const [workflowStages, setWorkflowStages] = useState([]);
   const [templateFields, setTemplateFields] = useState([]);
-  const [activeFilter, setActiveFilter] = useState("ALL");
   const [form, setForm] = useState(initialFormState);
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,12 +60,8 @@ function Leads() {
     setIsLoading(true);
 
     try {
-      const [leadsResponse, followupsResponse] = await Promise.all([
-        api.get("/api/leads"),
-        api.get("/api/followups"),
-      ]);
-      setLeads(getResponseList(leadsResponse));
-      setFollowups(getResponseList(followupsResponse));
+      const response = await api.get("/api/leads");
+      setLeads(getResponseList(response));
     } catch (fetchError) {
       const message =
         fetchError.response?.data?.message || "Unable to load leads";
@@ -107,6 +73,20 @@ function Leads() {
 
   useEffect(() => {
     fetchLeadData();
+  }, []);
+
+  useEffect(() => {
+    const fetchWorkflow = async () => {
+      try {
+        const response = await api.get(`/api/workflows/${DEFAULT_WORKFLOW_ID}`);
+        const stages = response.data?.data?.stages ?? [];
+        setWorkflowStages(Array.isArray(stages) ? stages : []);
+      } catch (workflowError) {
+        setWorkflowStages([]);
+      }
+    };
+
+    fetchWorkflow();
   }, []);
 
   useEffect(() => {
@@ -128,6 +108,15 @@ function Leads() {
 
     fetchTemplate();
   }, []);
+
+  const handleStageFilter = (stage) => {
+    if (!stage) {
+      setSearchParams({});
+      return;
+    }
+
+    setSearchParams({ stage });
+  };
 
   const handleChange = (event) => {
     const { checked, name, type, value } = event.target;
@@ -166,14 +155,14 @@ function Leads() {
   };
 
   const filteredLeads = leads.filter((lead) =>
-    leadMatchesFilter(lead, followups, activeFilter)
+    leadMatchesStage(lead, selectedStage)
   );
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-blue-600">FollowMate CRM</p>
+          <p className="text-sm font-medium text-blue-600">Lead Pipeline</p>
           <h1 className="text-2xl font-semibold text-slate-950">Leads</h1>
         </div>
 
@@ -196,7 +185,10 @@ function Leads() {
         <section className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 className="text-lg font-semibold text-slate-950">Create Lead</h2>
 
-          <form className="mt-4 grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
+          <form
+            className="mt-4 grid gap-4 sm:grid-cols-2"
+            onSubmit={handleSubmit}
+          >
             {templateFields.length === 0 ? (
               <p className="text-sm text-slate-500 sm:col-span-2">
                 Loading lead form...
@@ -286,22 +278,34 @@ function Leads() {
       ) : null}
 
       <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
-        {filterOptions.map((filter) => {
-          const isActive = activeFilter === filter.key;
-          const count = getFilterCount(leads, followups, filter.key);
+        <button
+          type="button"
+          onClick={() => handleStageFilter("")}
+          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+            !selectedStage
+              ? "border-blue-600 bg-blue-50 text-blue-700"
+              : "border-slate-200 bg-white text-slate-600 hover:border-blue-600 hover:text-blue-700"
+          }`}
+        >
+          All ({leads.length})
+        </button>
+
+        {workflowStages.map((stage) => {
+          const isActive = selectedStage === stage.stageName;
+          const count = getStageCount(leads, stage.stageName);
 
           return (
             <button
-              key={filter.key}
+              key={stage.id}
               type="button"
-              onClick={() => setActiveFilter(filter.key)}
+              onClick={() => handleStageFilter(stage.stageName)}
               className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 isActive
                   ? "border-blue-600 bg-blue-50 text-blue-700"
                   : "border-slate-200 bg-white text-slate-600 hover:border-blue-600 hover:text-blue-700"
               }`}
             >
-              {filter.label} ({count})
+              {stage.stageName} ({count})
             </button>
           );
         })}
@@ -325,7 +329,7 @@ function Leads() {
             <LeadCard
               key={lead.id}
               lead={lead}
-              followups={getLeadFollowups(lead.id, followups)}
+              showFollowupBadge={false}
               onViewDetails={() => navigate(`/leads/${lead.id}`)}
             />
           ))}

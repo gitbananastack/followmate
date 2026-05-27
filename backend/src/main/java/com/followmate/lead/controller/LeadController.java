@@ -4,9 +4,9 @@ import com.followmate.common.ApiResponse;
 import com.followmate.lead.dto.LeadNoteRequest;
 import com.followmate.lead.dto.LeadRequest;
 import com.followmate.lead.dto.LeadResponse;
+import com.followmate.lead.dto.LeadStageRequest;
 import com.followmate.lead.service.LeadService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -49,10 +48,10 @@ public class LeadController {
     @PutMapping("/{id}/stage")
     public ResponseEntity<ApiResponse<LeadResponse>> updateLeadStage(
             @PathVariable Long id,
-            @RequestParam @NotBlank(message = "Current stage is required") String currentStage
+            @Valid @RequestBody LeadStageRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success("Lead stage updated successfully",
-                leadService.updateLeadStage(id, currentStage)));
+                leadService.updateLeadStage(id, request.getCurrentStage())));
     }
 
     @PostMapping("/{id}/notes")

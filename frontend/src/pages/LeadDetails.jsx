@@ -37,6 +37,8 @@ function getStatusBadgeClass(status) {
 function LeadDetails() {
   const { id } = useParams();
   const [lead, setLead] = useState(null);
+  const [workflowStages, setWorkflowStages] = useState([]);
+  const [selectedStage, setSelectedStage] = useState("");
   const [followups, setFollowups] = useState([]);
   const [followupForm, setFollowupForm] = useState({
     followupDate: "",
@@ -45,6 +47,7 @@ function LeadDetails() {
   const [noteText, setNoteText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStageUpdating, setIsStageUpdating] = useState(false);
   const [isFollowupSubmitting, setIsFollowupSubmitting] = useState(false);
   const [completingFollowupId, setCompletingFollowupId] = useState(null);
   const [error, setError] = useState("");
@@ -54,7 +57,9 @@ function LeadDetails() {
 
     try {
       const response = await api.get(`/api/leads/${id}`);
-      setLead(response.data?.data ?? null);
+      const leadData = response.data?.data ?? null;
+      setLead(leadData);
+      setSelectedStage(leadData?.currentStage ?? "");
     } catch (fetchError) {
       const message =
         fetchError.response?.data?.message || "Unable to load lead details";
@@ -79,6 +84,48 @@ function LeadDetails() {
     fetchLead();
     fetchFollowups();
   }, [id]);
+
+  useEffect(() => {
+    const fetchWorkflow = async () => {
+      if (!lead?.workflowId) {
+        setWorkflowStages([]);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/api/workflows/${lead.workflowId}`);
+        const stages = response.data?.data?.stages ?? [];
+        setWorkflowStages(Array.isArray(stages) ? stages : []);
+      } catch (workflowError) {
+        setWorkflowStages([]);
+      }
+    };
+
+    fetchWorkflow();
+  }, [lead?.workflowId]);
+
+  const handleStageChange = async (event) => {
+    const nextStage = event.target.value;
+    setSelectedStage(nextStage);
+    setIsStageUpdating(true);
+    setError("");
+
+    try {
+      const response = await api.put(`/api/leads/${id}/stage`, {
+        currentStage: nextStage,
+      });
+      const updatedLead = response.data?.data;
+      setLead(updatedLead);
+      setSelectedStage(updatedLead?.currentStage ?? nextStage);
+    } catch (stageError) {
+      const message =
+        stageError.response?.data?.message || "Unable to update lead stage";
+      setError(message);
+      setSelectedStage(lead?.currentStage ?? "");
+    } finally {
+      setIsStageUpdating(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -225,6 +272,37 @@ function LeadDetails() {
                   {formatDate(lead.createdAt)}
                 </p>
               </div>
+            </div>
+
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <label
+                htmlFor="currentStage"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Move Lead Stage
+              </label>
+              <select
+                id="currentStage"
+                value={selectedStage}
+                onChange={handleStageChange}
+                disabled={isStageUpdating || workflowStages.length === 0}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 sm:max-w-sm"
+              >
+                {workflowStages.length === 0 ? (
+                  <option value={selectedStage}>
+                    {selectedStage || "No stages available"}
+                  </option>
+                ) : null}
+
+                {workflowStages.map((stage) => (
+                  <option key={stage.id} value={stage.stageName}>
+                    {stage.stageName}
+                  </option>
+                ))}
+              </select>
+              {isStageUpdating ? (
+                <p className="mt-2 text-sm text-slate-500">Updating stage...</p>
+              ) : null}
             </div>
           </section>
 

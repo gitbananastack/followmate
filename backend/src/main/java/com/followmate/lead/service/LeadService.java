@@ -75,8 +75,9 @@ public class LeadService {
 
     public LeadResponse updateLeadStage(Long id, String currentStage) {
         Lead lead = findLeadById(id);
-        lead.setCurrentStage(currentStage);
-        lead.setStatus(currentStage);
+        String stage = currentStage.trim();
+        lead.setCurrentStage(stage);
+        lead.setStatus(stage);
         return toResponse(leadRepository.save(lead));
     }
 

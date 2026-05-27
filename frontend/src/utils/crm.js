@@ -41,6 +41,21 @@ export function isOverdueFollowup(followup) {
   );
 }
 
+export function isToday(value) {
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+  const today = new Date();
+
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
+}
+
 export function getFollowupCategory(followup) {
   if (isOverdueFollowup(followup)) {
     return "OVERDUE";
