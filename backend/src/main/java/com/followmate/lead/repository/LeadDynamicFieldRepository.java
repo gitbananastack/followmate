@@ -9,5 +9,7 @@ public interface LeadDynamicFieldRepository extends JpaRepository<LeadDynamicFie
 
     List<LeadDynamicField> findByLeadId(Long leadId);
 
+    List<LeadDynamicField> findByLeadIdIn(List<Long> leadIds);
+
     void deleteByLeadId(Long leadId);
 }
