@@ -175,6 +175,20 @@ function Organizations() {
                   </Link>
 
                   <Link
+                    to={`/super-admin/organizations/${organization.id}/subscription`}
+                    className="rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600"
+                  >
+                    Manage Subscription
+                  </Link>
+
+                  <Link
+                    to={`/super-admin/organizations/${organization.id}/addons`}
+                    className="rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600"
+                  >
+                    Manage Add-ons
+                  </Link>
+
+                  <Link
                     to={`/super-admin/organizations/${organization.id}`}
                     className="rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600"
                   >

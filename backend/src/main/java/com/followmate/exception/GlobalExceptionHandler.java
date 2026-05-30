@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.followmate.subscription.service.FeatureUnavailableException;
 
 import java.util.stream.Collectors;
 
@@ -58,6 +59,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.failure("Access denied"));
+    }
+
+    @ExceptionHandler(FeatureUnavailableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleFeatureUnavailableException(FeatureUnavailableException ex) {
+        log.warn("Feature unavailable: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.failure(ex.getMessage()));
     }
 
     @ExceptionHandler(RuntimeException.class)

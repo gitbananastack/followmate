@@ -26,6 +26,12 @@ function BusinessSettings() {
             >
               Manage Users
             </Link>
+            <Link
+              to="/settings/billing"
+              className="inline-flex rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600"
+            >
+              Billing
+            </Link>
           </div>
         ) : null}
       </section>

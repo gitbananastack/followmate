@@ -10,6 +10,7 @@ const businessNavItems = [
   { label: "Leads", path: "/leads", permission: "LEAD_VIEW" },
   { label: "Follow-ups", path: "/followups", permission: "FOLLOWUP_VIEW" },
   { label: "Reports", path: "/reports", permission: "REPORT_VIEW" },
+  { label: "CSV Import", path: "/csv-import", permission: "CSV_IMPORT" },
   { label: "Settings", path: "/settings", permission: "SETTINGS_VIEW" },
 ];
 

@@ -84,6 +84,18 @@ function OrganizationView() {
           >
             Manage Users
           </Link>
+          <Link
+            to={`/super-admin/organizations/${organization.id}/subscription`}
+            className="ml-0 mt-3 inline-flex rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600 sm:ml-3 sm:mt-5"
+          >
+            Manage Subscription
+          </Link>
+          <Link
+            to={`/super-admin/organizations/${organization.id}/addons`}
+            className="ml-0 mt-3 inline-flex rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600 sm:ml-3 sm:mt-5"
+          >
+            Manage Add-ons
+          </Link>
         </section>
       ) : null}
     </main>
