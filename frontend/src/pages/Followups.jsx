@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import { hasPermission } from "../utils/auth";
 import {
   formatDateTime,
   getFollowupCategory,
-  getLeadField,
-  getLeadSummary,
   getResponseList,
   isOverdueFollowup,
   isToday,
 } from "../utils/crm";
+import { getLeadSummary } from "../utils/leadUtils";
 
 const filterOptions = [
   { key: "ALL", label: "All" },
@@ -75,6 +75,7 @@ function Followups() {
   const [isLoading, setIsLoading] = useState(true);
   const [completingFollowupId, setCompletingFollowupId] = useState(null);
   const [error, setError] = useState("");
+  const canCompleteFollowup = hasPermission("FOLLOWUP_COMPLETE");
 
   const activeFilter = getInitialFilter(
     searchParams.get("status"),
@@ -117,7 +118,9 @@ function Followups() {
   };
 
   useEffect(() => {
-    fetchFollowups();
+    const timeoutId = window.setTimeout(fetchFollowups, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const handleFilterChange = (filter) => {
@@ -213,10 +216,10 @@ function Followups() {
         {!isLoading &&
           filteredFollowups.map((followup) => {
             const lead = leadDetailsById[followup.leadId];
-            const customerName = getLeadField(lead, "customerName");
-            const requirement =
-              getLeadField(lead, "artworkName") ||
-              getLeadField(lead, "requirement");
+            const summary = getLeadSummary({
+              ...(lead ?? {}),
+              id: lead?.id ?? followup.leadId,
+            });
             const overdue = isOverdueFollowup(followup);
 
             return (
@@ -231,11 +234,13 @@ function Followups() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">
-                      {getLeadSummary(followup.leadId, lead)}
+                      {summary.leadNo}
                     </p>
-                    {customerName || requirement ? (
+                    {summary.title || summary.subtitle || summary.phone ? (
                       <p className="mt-1 text-sm text-slate-500">
-                        {[customerName, requirement].filter(Boolean).join(" | ")}
+                        {[summary.title, summary.phone, summary.subtitle]
+                          .filter(Boolean)
+                          .join(" | ")}
                       </p>
                     ) : null}
                     <p className="mt-2 text-sm text-slate-600">
@@ -259,7 +264,7 @@ function Followups() {
                   </p>
                 </div>
 
-                {followup.status === "PENDING" ? (
+                {followup.status === "PENDING" && canCompleteFollowup ? (
                   <button
                     type="button"
                     onClick={() => handleMarkComplete(followup.id)}

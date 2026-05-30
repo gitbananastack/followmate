@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
-import { getLeadField, getResponseList } from "../utils/crm";
-
-const DEFAULT_WORKFLOW_ID = 1;
+import { getStoredOrganizationId } from "../utils/auth";
+import { getResponseList } from "../utils/crm";
+import { getLeadSummary } from "../utils/leadUtils";
 
 function getPipelineColumns(stages, leads) {
   const groupedLeads = stages.reduce((columns, stage) => {
@@ -24,20 +24,9 @@ function getPipelineColumns(stages, leads) {
   }));
 }
 
-function getFirstLeadField(lead, fieldNames) {
-  for (const fieldName of fieldNames) {
-    const value = getLeadField(lead, fieldName);
-
-    if (value) {
-      return value;
-    }
-  }
-
-  return "";
-}
-
 function Pipeline() {
-  const [workflowStages, setWorkflowStages] = useState([]);
+  const organizationId = getStoredOrganizationId();
+  const [pipelineStages, setPipelineStages] = useState([]);
   const [leads, setLeads] = useState([]);
   const [updatingLeadId, setUpdatingLeadId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,14 +35,27 @@ function Pipeline() {
   useEffect(() => {
     const fetchPipeline = async () => {
       try {
-        const [workflowResponse, leadsResponse] = await Promise.all([
-          api.get(`/api/workflows/${DEFAULT_WORKFLOW_ID}`),
+        const [setupResponse, leadsResponse] = await Promise.all([
+          api.get(`/api/organizations/${organizationId}/effective-setup`),
           api.get("/api/leads"),
         ]);
 
-        const stages = workflowResponse.data?.data?.stages ?? [];
-        setWorkflowStages(Array.isArray(stages) ? stages : []);
-        setLeads(getResponseList(leadsResponse));
+        const stages = setupResponse.data?.data?.pipelineStages ?? [];
+        const organizationLeads = getResponseList(leadsResponse).filter(
+          (lead) => !organizationId || String(lead.organizationId) === organizationId
+        );
+        setPipelineStages(
+          Array.isArray(stages)
+            ? stages
+                .filter((stage) => stage.active)
+                .sort(
+                  (firstStage, secondStage) =>
+                    (firstStage.displayOrder ?? 0) -
+                    (secondStage.displayOrder ?? 0)
+                )
+            : []
+        );
+        setLeads(organizationLeads);
       } catch (fetchError) {
         const message =
           fetchError.response?.data?.message || "Unable to load pipeline";
@@ -64,7 +66,7 @@ function Pipeline() {
     };
 
     fetchPipeline();
-  }, []);
+  }, [organizationId]);
 
   const handleStageChange = async (leadId, nextStage) => {
     setUpdatingLeadId(leadId);
@@ -87,7 +89,7 @@ function Pipeline() {
     }
   };
 
-  const columns = getPipelineColumns(workflowStages, leads);
+  const columns = getPipelineColumns(pipelineStages, leads);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
@@ -134,18 +136,7 @@ function Pipeline() {
                 ) : null}
 
                 {column.leads.map((lead) => {
-                  const customerName = getLeadField(lead, "customerName");
-                  const phone = getFirstLeadField(lead, [
-                    "phoneNumber",
-                    "phone",
-                    "mobile",
-                    "mobileNumber",
-                    "customerPhone",
-                  ]);
-                  const requirement =
-                    getLeadField(lead, "artworkName") ||
-                    getLeadField(lead, "requirement");
-                  const budget = getLeadField(lead, "budget");
+                  const summary = getLeadSummary(lead);
 
                   return (
                     <article
@@ -155,11 +146,13 @@ function Pipeline() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-slate-950">
-                            Lead #{lead.id}
+                            {summary.leadNo}
                           </p>
-                          <p className="mt-1 text-sm text-slate-700">
-                            {customerName || `Lead #${lead.id}`}
-                          </p>
+                          {summary.title ? (
+                            <p className="mt-1 text-sm text-slate-700">
+                              {summary.title}
+                            </p>
+                          ) : null}
                         </div>
 
                         <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600">
@@ -168,9 +161,9 @@ function Pipeline() {
                       </div>
 
                       <div className="mt-3 space-y-1 text-sm text-slate-600">
-                        {phone ? <p>Phone: {phone}</p> : null}
-                        <p>{requirement || "No requirement added"}</p>
-                        {budget ? <p>Budget: {budget}</p> : null}
+                        {summary.phone ? <p>Phone: {summary.phone}</p> : null}
+                        {summary.subtitle ? <p>{summary.subtitle}</p> : null}
+                        {summary.budget ? <p>Budget: {summary.budget}</p> : null}
                       </div>
 
                       <label
@@ -188,7 +181,7 @@ function Pipeline() {
                         disabled={updatingLeadId === lead.id}
                         className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                       >
-                        {workflowStages.map((stage) => (
+                        {pipelineStages.map((stage) => (
                           <option key={stage.id} value={stage.stageName}>
                             {stage.stageName}
                           </option>

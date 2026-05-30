@@ -20,4 +20,6 @@ public class TemplateFieldResponse {
     private String fieldType;
     private Boolean mandatory;
     private Integer displayOrder;
+    private String dropdownOptions;
+    private Boolean active;
 }

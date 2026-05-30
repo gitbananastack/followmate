@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
+import { getStoredOrganizationId, hasPermission } from "../utils/auth";
+import { getLeadSummary } from "../utils/leadUtils";
 
 function formatDate(value) {
   if (!value) {
@@ -37,7 +39,7 @@ function getStatusBadgeClass(status) {
 function LeadDetails() {
   const { id } = useParams();
   const [lead, setLead] = useState(null);
-  const [workflowStages, setWorkflowStages] = useState([]);
+  const [pipelineStages, setPipelineStages] = useState([]);
   const [selectedStage, setSelectedStage] = useState("");
   const [followups, setFollowups] = useState([]);
   const [followupForm, setFollowupForm] = useState({
@@ -54,8 +56,13 @@ function LeadDetails() {
   const [isFollowupSubmitting, setIsFollowupSubmitting] = useState(false);
   const [completingFollowupId, setCompletingFollowupId] = useState(null);
   const [error, setError] = useState("");
+  const canEditLead = hasPermission("LEAD_EDIT");
+  const canCreateFollowup = hasPermission("FOLLOWUP_CREATE");
+  const canCompleteFollowup = hasPermission("FOLLOWUP_COMPLETE");
+  const organizationId = getStoredOrganizationId();
+  const leadSummary = getLeadSummary(lead);
 
-  const fetchLead = async () => {
+  const fetchLead = useCallback(async () => {
     setIsLoading(true);
 
     try {
@@ -71,42 +78,59 @@ function LeadDetails() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchFollowups = async () => {
+  const fetchFollowups = useCallback(async () => {
     try {
       const response = await api.get(`/api/followups/lead/${id}`);
       const followupList = response.data?.data ?? [];
       setFollowups(Array.isArray(followupList) ? followupList : []);
-    } catch (fetchError) {
+    } catch {
       setFollowups([]);
     }
-  };
-
-  useEffect(() => {
-    setError("");
-    fetchLead();
-    fetchFollowups();
   }, [id]);
 
   useEffect(() => {
-    const fetchWorkflow = async () => {
-      if (!lead?.workflowId) {
-        setWorkflowStages([]);
+    const timeoutId = window.setTimeout(() => {
+      setError("");
+      fetchLead();
+      fetchFollowups();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchFollowups, fetchLead]);
+
+  useEffect(() => {
+    const fetchOrganizationSetup = async () => {
+      const setupOrganizationId = lead?.organizationId ?? organizationId;
+      if (!setupOrganizationId) {
+        setPipelineStages([]);
         return;
       }
 
       try {
-        const response = await api.get(`/api/workflows/${lead.workflowId}`);
-        const stages = response.data?.data?.stages ?? [];
-        setWorkflowStages(Array.isArray(stages) ? stages : []);
-      } catch (workflowError) {
-        setWorkflowStages([]);
+        const response = await api.get(
+          `/api/organizations/${setupOrganizationId}/effective-setup`
+        );
+        const stages = response.data?.data?.pipelineStages ?? [];
+        setPipelineStages(
+          Array.isArray(stages)
+            ? stages
+                .filter((stage) => stage.active)
+                .sort(
+                  (firstStage, secondStage) =>
+                    (firstStage.displayOrder ?? 0) -
+                    (secondStage.displayOrder ?? 0)
+                )
+            : []
+        );
+      } catch {
+        setPipelineStages([]);
       }
     };
 
-    fetchWorkflow();
-  }, [lead?.workflowId]);
+    fetchOrganizationSetup();
+  }, [lead?.organizationId, organizationId]);
 
   const handleStageChange = async (event) => {
     const nextStage = event.target.value;
@@ -268,8 +292,16 @@ function LeadDetails() {
             Back to Leads
           </Link>
           <h1 className="mt-2 text-2xl font-semibold text-slate-950">
-            Lead Details
+            {leadSummary.title || "Lead Details"}
           </h1>
+          {lead ? (
+            <div className="mt-2 space-y-1 text-sm text-slate-600">
+              <p>{leadSummary.leadNo}</p>
+              {leadSummary.phone ? <p>Phone: {leadSummary.phone}</p> : null}
+              {leadSummary.subtitle ? <p>{leadSummary.subtitle}</p> : null}
+              {leadSummary.budget ? <p>Budget: {leadSummary.budget}</p> : null}
+            </div>
+          ) : null}
         </div>
 
         {lead ? (
@@ -333,16 +365,16 @@ function LeadDetails() {
                 id="currentStage"
                 value={selectedStage}
                 onChange={handleStageChange}
-                disabled={isStageUpdating || workflowStages.length === 0}
+                disabled={isStageUpdating || pipelineStages.length === 0}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 sm:max-w-sm"
               >
-                {workflowStages.length === 0 ? (
+                {pipelineStages.length === 0 ? (
                   <option value={selectedStage}>
                     {selectedStage || "No stages available"}
                   </option>
                 ) : null}
 
-                {workflowStages.map((stage) => (
+                {pipelineStages.map((stage) => (
                   <option key={stage.id} value={stage.stageName}>
                     {stage.stageName}
                   </option>
@@ -360,7 +392,7 @@ function LeadDetails() {
                 Dynamic Fields
               </h2>
 
-              {!isEditingFields ? (
+              {!isEditingFields && canEditLead ? (
                 <button
                   type="button"
                   onClick={handleEditFields}
@@ -484,59 +516,61 @@ function LeadDetails() {
               Follow-ups
             </h2>
 
-            <form
-              className="mt-4 grid gap-4 sm:grid-cols-2"
-              onSubmit={handleFollowupSubmit}
-            >
-              <div>
-                <label
-                  htmlFor="followupDate"
-                  className="mb-2 block text-sm font-medium text-slate-700"
-                >
-                  Follow-up Date
-                </label>
-                <input
-                  id="followupDate"
-                  name="followupDate"
-                  type="datetime-local"
-                  value={followupForm.followupDate}
-                  onChange={handleFollowupChange}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                  required
-                />
-              </div>
+            {canCreateFollowup ? (
+              <form
+                className="mt-4 grid gap-4 sm:grid-cols-2"
+                onSubmit={handleFollowupSubmit}
+              >
+                <div>
+                  <label
+                    htmlFor="followupDate"
+                    className="mb-2 block text-sm font-medium text-slate-700"
+                  >
+                    Follow-up Date
+                  </label>
+                  <input
+                    id="followupDate"
+                    name="followupDate"
+                    type="datetime-local"
+                    value={followupForm.followupDate}
+                    onChange={handleFollowupChange}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label
-                  htmlFor="remarks"
-                  className="mb-2 block text-sm font-medium text-slate-700"
-                >
-                  Remarks
-                </label>
-                <textarea
-                  id="remarks"
-                  name="remarks"
-                  value={followupForm.remarks}
-                  onChange={handleFollowupChange}
-                  rows="3"
-                  className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                  placeholder="Call customer for confirmation"
-                  required
-                />
-              </div>
+                <div>
+                  <label
+                    htmlFor="remarks"
+                    className="mb-2 block text-sm font-medium text-slate-700"
+                  >
+                    Remarks
+                  </label>
+                  <textarea
+                    id="remarks"
+                    name="remarks"
+                    value={followupForm.remarks}
+                    onChange={handleFollowupChange}
+                    rows="3"
+                    className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                    placeholder="Call customer for confirmation"
+                    required
+                  />
+                </div>
 
-              <div className="sm:col-span-2">
-                <button
-                  type="submit"
-                  disabled={isFollowupSubmitting}
-                  className="w-full rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
-                >
-                  {isFollowupSubmitting
-                    ? "Scheduling..."
-                    : "Schedule Follow-up"}
-                </button>
-              </div>
-            </form>
+                <div className="sm:col-span-2">
+                  <button
+                    type="submit"
+                    disabled={isFollowupSubmitting}
+                    className="w-full rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                  >
+                    {isFollowupSubmitting
+                      ? "Scheduling..."
+                      : "Schedule Follow-up"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
 
             <div className="mt-5 grid gap-3">
               {followups.length === 0 ? (
@@ -572,7 +606,7 @@ function LeadDetails() {
                       </span>
                     </div>
 
-                    {isPending ? (
+                    {isPending && canCompleteFollowup ? (
                       <button
                         type="button"
                         onClick={() => handleMarkComplete(followup.id)}

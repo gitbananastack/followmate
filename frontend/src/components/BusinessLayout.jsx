@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { clearAuthSession } from "../utils/auth";
+import { clearAuthSession, hasPermission } from "../utils/auth";
 import { getResponseList, isOverdueFollowup } from "../utils/crm";
 
 const businessNavItems = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Pipeline", path: "/pipeline" },
-  { label: "Leads", path: "/leads" },
-  { label: "Follow-ups", path: "/followups" },
-  { label: "Settings", path: "/settings" },
+  { label: "Dashboard", path: "/dashboard", permission: "DASHBOARD_VIEW" },
+  { label: "Pipeline", path: "/pipeline", permission: "PIPELINE_VIEW" },
+  { label: "Leads", path: "/leads", permission: "LEAD_VIEW" },
+  { label: "Follow-ups", path: "/followups", permission: "FOLLOWUP_VIEW" },
+  { label: "Reports", path: "/reports", permission: "REPORT_VIEW" },
+  { label: "Settings", path: "/settings", permission: "SETTINGS_VIEW" },
 ];
 
 function BusinessLayout() {
@@ -18,13 +19,18 @@ function BusinessLayout() {
 
   useEffect(() => {
     const fetchOverdueCount = async () => {
+      if (!hasPermission("FOLLOWUP_VIEW")) {
+        setOverdueCount(0);
+        return;
+      }
+
       try {
         const response = await api.get("/api/followups");
         const overdueFollowups = getResponseList(response).filter(
           isOverdueFollowup
         );
         setOverdueCount(overdueFollowups.length);
-      } catch (error) {
+      } catch {
         setOverdueCount(0);
       }
     };
@@ -61,6 +67,10 @@ function BusinessLayout() {
     </span>
   );
 
+  const visibleNavItems = businessNavItems.filter((item) =>
+    hasPermission(item.permission)
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-0">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white px-4 py-5 md:flex md:flex-col">
@@ -70,7 +80,7 @@ function BusinessLayout() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
-          {businessNavItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink key={item.path} to={item.path} className={navLinkClass}>
               {renderNavLabel(item)}
             </NavLink>
@@ -91,7 +101,7 @@ function BusinessLayout() {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-10 flex gap-2 overflow-x-auto border-t border-slate-200 bg-white p-2 shadow-lg shadow-slate-900/10 md:hidden">
-        {businessNavItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}

@@ -17,6 +17,7 @@ import java.util.List;
 public class TemplateResponse {
 
     private Long id;
+    private Long organizationId;
     private String templateName;
     private String businessType;
     private Boolean active;

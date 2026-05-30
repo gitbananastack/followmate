@@ -11,4 +11,6 @@ public interface FollowupRepository extends JpaRepository<Followup, Long> {
     List<Followup> findAll();
 
     List<Followup> findByLeadId(Long leadId);
+
+    List<Followup> findByLeadIdIn(List<Long> leadIds);
 }

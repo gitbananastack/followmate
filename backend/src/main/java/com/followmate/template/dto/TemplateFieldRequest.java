@@ -22,8 +22,8 @@ public class TemplateFieldRequest {
 
     @NotBlank(message = "Field type is required")
     @Pattern(
-            regexp = "TEXT|NUMBER|DATE|DROPDOWN|CHECKBOX|TEXTAREA",
-            message = "Field type must be one of TEXT, NUMBER, DATE, DROPDOWN, CHECKBOX, TEXTAREA"
+            regexp = "TEXT|NUMBER|DATE|DROPDOWN|CHECKBOX|TEXTAREA|EMAIL|PHONE",
+            message = "Field type must be one of TEXT, NUMBER, DATE, DROPDOWN, CHECKBOX, TEXTAREA, EMAIL, PHONE"
     )
     private String fieldType;
 
@@ -33,4 +33,7 @@ public class TemplateFieldRequest {
     @NotNull(message = "Display order is required")
     @Min(value = 1, message = "Display order must be at least 1")
     private Integer displayOrder;
+
+    @Size(max = 2000, message = "Dropdown options must not exceed 2000 characters")
+    private String dropdownOptions;
 }

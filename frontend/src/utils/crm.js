@@ -1,14 +1,20 @@
+import {
+  getDynamicFieldMap,
+  getLeadSummary as getLeadSummaryDetails,
+} from "./leadUtils";
+
 export function getResponseList(response) {
   const data = response.data?.data ?? [];
   return Array.isArray(data) ? data : [];
 }
 
 export function getLeadField(lead, fieldName) {
-  const fields = lead?.dynamicFields ?? lead?.fields ?? [];
-
-  return (
-    fields.find((field) => field.fieldName === fieldName)?.fieldValue || ""
-  );
+  return getDynamicFieldMap(lead)[
+    String(fieldName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+  ] || "";
 }
 
 export const PHONE_FIELD_NAMES = [
@@ -24,15 +30,7 @@ export function isPhoneField(fieldName) {
 }
 
 export function getPhoneNumber(lead) {
-  for (const fieldName of PHONE_FIELD_NAMES) {
-    const phoneNumber = getLeadField(lead, fieldName);
-
-    if (phoneNumber) {
-      return phoneNumber;
-    }
-  }
-
-  return "";
+  return getLeadSummaryDetails(lead).phone;
 }
 
 export function getLeadSummary(leadOrLeadId, leadDetails) {
@@ -45,14 +43,8 @@ export function getLeadSummary(leadOrLeadId, leadDetails) {
     return fallback;
   }
 
-  const customerName = getLeadField(lead, "customerName");
-  const primaryRequirement =
-    getLeadField(lead, "artworkName") ||
-    getLeadField(lead, "requirement") ||
-    getLeadField(lead, "budget");
-  const labelParts = [fallback, customerName, primaryRequirement].filter(
-    Boolean
-  );
+  const summary = getLeadSummaryDetails({ ...lead, id: lead.id ?? leadId });
+  const labelParts = [summary.leadNo || fallback, summary.title, summary.subtitle].filter(Boolean);
 
   return labelParts.length > 1 ? labelParts.join(" \u2014 ") : fallback;
 }

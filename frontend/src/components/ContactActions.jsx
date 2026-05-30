@@ -1,36 +1,22 @@
-import { getPhoneNumber } from "../utils/crm";
+import {
+  formatPhoneForWhatsApp,
+  getLeadSummary,
+  getTelLink,
+} from "../utils/leadUtils";
 
 const DEFAULT_WHATSAPP_MESSAGE =
   "Hello, this is regarding your inquiry with us.";
 
-function cleanPhoneNumber(phoneNumber) {
-  const value = String(phoneNumber || "").replace(/\s/g, "");
-  const digits = value.replace(/\D/g, "");
-
-  return value.startsWith("+") ? `+${digits}` : digits;
-}
-
-function getWhatsAppNumber(phoneNumber) {
-  const cleanNumber = cleanPhoneNumber(phoneNumber).replace(/\D/g, "");
-
-  if (!cleanNumber) {
-    return "";
-  }
-
-  return cleanNumber;
-}
-
 function ContactActions({ lead }) {
-  const phoneNumber = getPhoneNumber(lead);
-  const callNumber = cleanPhoneNumber(phoneNumber);
-  const whatsappNumber = getWhatsAppNumber(phoneNumber);
+  const phoneNumber = getLeadSummary(lead).phone;
+  const whatsappNumber = formatPhoneForWhatsApp(phoneNumber);
 
-  if (!callNumber) {
+  if (!phoneNumber) {
     return <p className="text-sm text-slate-500">No phone number</p>;
   }
 
   const handleCall = () => {
-    window.location.href = `tel:${callNumber}`;
+    window.location.href = getTelLink(phoneNumber);
   };
 
   const handleWhatsApp = () => {

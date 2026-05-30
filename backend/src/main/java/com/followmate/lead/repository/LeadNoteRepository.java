@@ -8,4 +8,6 @@ import java.util.List;
 public interface LeadNoteRepository extends JpaRepository<LeadNote, Long> {
 
     List<LeadNote> findByLeadIdOrderByCreatedAtDesc(Long leadId);
+
+    void deleteByLeadId(Long leadId);
 }

@@ -42,4 +42,11 @@ public class TemplateField {
 
     @Column(nullable = false)
     private Integer displayOrder;
+
+    @Column(length = 2000)
+    private String dropdownOptions;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean active = true;
 }

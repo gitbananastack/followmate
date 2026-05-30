@@ -10,4 +10,6 @@ public interface TemplateFieldRepository extends JpaRepository<TemplateField, Lo
     List<TemplateField> findByTemplateIdOrderByDisplayOrderAsc(Long templateId);
 
     void deleteByTemplateId(Long templateId);
+
+    List<TemplateField> findByTemplateIdAndActiveTrueOrderByDisplayOrderAsc(Long templateId);
 }

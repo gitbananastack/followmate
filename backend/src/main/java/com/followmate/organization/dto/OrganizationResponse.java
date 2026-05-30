@@ -18,6 +18,8 @@ public class OrganizationResponse {
     private Long id;
     private String organizationName;
     private String businessType;
+    private Long sourceTemplateId;
+    private Boolean setupFinalized;
     private String email;
     private String phone;
     private String address;

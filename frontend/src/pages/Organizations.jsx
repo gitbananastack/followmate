@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { formatDate, getResponseList } from "../utils/crm";
-
-const initialFormState = {
-  organizationName: "",
-  businessType: "",
-  email: "",
-  phone: "",
-  address: "",
-};
 
 function getStatusBadgeClass(status) {
   if (status === "ACTIVE") {
@@ -23,11 +16,9 @@ function getStatusBadgeClass(status) {
 }
 
 function Organizations() {
+  const navigate = useNavigate();
   const [organizations, setOrganizations] = useState([]);
-  const [form, setForm] = useState(initialFormState);
-  const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [updatingOrganizationId, setUpdatingOrganizationId] = useState(null);
   const [error, setError] = useState("");
 
@@ -48,35 +39,10 @@ function Organizations() {
   };
 
   useEffect(() => {
-    fetchOrganizations();
+    const timeoutId = window.setTimeout(fetchOrganizations, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((currentForm) => ({
-      ...currentForm,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      await api.post("/api/organizations", form);
-      setForm(initialFormState);
-      setShowForm(false);
-      await fetchOrganizations();
-    } catch (submitError) {
-      const message =
-        submitError.response?.data?.message || "Unable to create organization";
-      setError(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleStatusChange = async (organizationId, action) => {
     setUpdatingOrganizationId(organizationId);
@@ -115,10 +81,10 @@ function Organizations() {
 
         <button
           type="button"
-          onClick={() => setShowForm((currentValue) => !currentValue)}
+          onClick={() => navigate("/super-admin/organizations/new")}
           className="rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
-          {showForm ? "Close Form" : "Create Organization"}
+          Create Organization
         </button>
       </header>
 
@@ -126,116 +92,6 @@ function Organizations() {
         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
-      ) : null}
-
-      {showForm ? (
-        <section className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Create Organization
-          </h2>
-
-          <form
-            className="mt-4 grid gap-4 sm:grid-cols-2"
-            onSubmit={handleSubmit}
-          >
-            <div>
-              <label
-                htmlFor="organizationName"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Organization Name
-              </label>
-              <input
-                id="organizationName"
-                name="organizationName"
-                value={form.organizationName}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="businessType"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Business Type
-              </label>
-              <input
-                id="businessType"
-                name="businessType"
-                value={form.businessType}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="phone"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Phone
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label
-                htmlFor="address"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Address
-              </label>
-              <textarea
-                id="address"
-                name="address"
-                value={form.address}
-                onChange={handleChange}
-                rows="3"
-                className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
-              >
-                {isSubmitting ? "Creating..." : "Save Organization"}
-              </button>
-            </div>
-          </form>
-        </section>
       ) : null}
 
       <section className="grid gap-4">
@@ -287,13 +143,13 @@ function Organizations() {
                   <div>
                     <p className="text-slate-500">Email</p>
                     <p className="mt-1 font-medium text-slate-900">
-                      {organization.email}
+                      {organization.email || "-"}
                     </p>
                   </div>
                   <div>
                     <p className="text-slate-500">Phone</p>
                     <p className="mt-1 font-medium text-slate-900">
-                      {organization.phone}
+                      {organization.phone || "-"}
                     </p>
                   </div>
                   <div>
@@ -305,12 +161,26 @@ function Organizations() {
                   <div>
                     <p className="text-slate-500">Address</p>
                     <p className="mt-1 font-medium text-slate-900">
-                      {organization.address}
+                      {organization.address || "-"}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <Link
+                    to={`/super-admin/organizations/${organization.id}/users`}
+                    className="rounded-lg bg-[#2563EB] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    Manage Users
+                  </Link>
+
+                  <Link
+                    to={`/super-admin/organizations/${organization.id}`}
+                    className="rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-blue-600 hover:text-blue-600"
+                  >
+                    View
+                  </Link>
+
                   {!isActive ? (
                     <button
                       type="button"

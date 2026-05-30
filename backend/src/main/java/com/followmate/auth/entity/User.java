@@ -40,6 +40,13 @@ public class User {
     @Column(nullable = false)
     private String status;
 
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean forcePasswordChange = false;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;

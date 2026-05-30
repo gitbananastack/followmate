@@ -35,13 +35,17 @@ public class Organization {
     @Column(nullable = false)
     private String businessType;
 
+    private Long sourceTemplateId;
+
+    @Builder.Default
     @Column(nullable = false)
+    private Boolean setupFinalized = false;
+
     private String email;
 
-    @Column(nullable = false)
     private String phone;
 
-    @Column(nullable = false, length = 1000)
+    @Column(length = 1000)
     private String address;
 
     @Column(nullable = false)

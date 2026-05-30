@@ -32,10 +32,10 @@ public class Lead {
     @Column(nullable = false)
     private Long organizationId;
 
-    @Column(nullable = false)
+    @Column(name = "template_id", nullable = true)
     private Long templateId;
 
-    @Column(nullable = false)
+    @Column(name = "workflow_id", nullable = true)
     private Long workflowId;
 
     @Column(nullable = false)

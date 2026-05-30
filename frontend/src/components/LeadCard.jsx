@@ -1,9 +1,9 @@
 import {
   formatDate,
-  getLeadField,
   getFollowupCategory,
   isOverdueFollowup,
 } from "../utils/crm";
+import { getLeadSummary } from "../utils/leadUtils";
 import ContactActions from "./ContactActions";
 
 function getLeadFollowupBadge(followups) {
@@ -47,27 +47,34 @@ function LeadCard({
   onViewDetails,
   showFollowupBadge = true,
 }) {
-  const customerName = getLeadField(lead, "customerName");
-  const artworkName = getLeadField(lead, "artworkName");
-  const requirement = getLeadField(lead, "requirement");
-  const budget = getLeadField(lead, "budget");
-  const primaryRequirement = artworkName || requirement || budget;
+  const summary = getLeadSummary(lead);
   const followupBadge = getLeadFollowupBadge(followups);
 
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">Lead #{lead.id}</p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-950">
-            {customerName || `Lead #${lead.id}`}
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {primaryRequirement || `Lead #${lead.id}`}
+          <p className="text-sm font-medium text-slate-500">
+            {summary.leadNo}
           </p>
-          {budget ? (
+          {summary.title ? (
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">
+              {summary.title}
+            </h2>
+          ) : null}
+          {summary.phone ? (
+            <p className="mt-1 text-sm text-slate-600">
+              Phone: {summary.phone}
+            </p>
+          ) : null}
+          {summary.subtitle ? (
+            <p className="mt-1 text-sm text-slate-600">
+              Course: {summary.subtitle}
+            </p>
+          ) : null}
+          {summary.budget ? (
             <p className="mt-2 text-sm font-medium text-slate-900">
-              Budget: {budget}
+              Budget: {summary.budget}
             </p>
           ) : null}
         </div>

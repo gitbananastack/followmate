@@ -28,6 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ForcePasswordChangeFilter forcePasswordChangeFilter;
     private final ObjectMapper objectMapper;
 
     @Bean
@@ -46,7 +47,8 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, "Access denied"))
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(forcePasswordChangeFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

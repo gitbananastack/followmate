@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LeadCard from "../components/LeadCard";
 import api from "../services/api";
+import { getStoredOrganizationId, hasPermission } from "../utils/auth";
 import { getResponseList, isPhoneField } from "../utils/crm";
 
 const initialFormState = {};
 
-const DEFAULT_ORGANIZATION_ID = 1;
-const DEFAULT_TEMPLATE_ID = 1;
-const DEFAULT_WORKFLOW_ID = 1;
 const DEFAULT_COUNTRY_CODE = "+91";
 
 const countryCodeOptions = [
@@ -38,7 +36,7 @@ function getInputType(fieldType) {
   return "text";
 }
 
-function getEmptyTemplateForm(fields) {
+function getEmptyLeadForm(fields) {
   return fields.reduce((formValues, field) => {
     formValues[field.fieldName] = field.fieldType === "CHECKBOX" ? "false" : "";
     return formValues;
@@ -87,22 +85,29 @@ function Leads() {
   const selectedStage = searchParams.get("stage") || "";
 
   const [leads, setLeads] = useState([]);
-  const [workflowStages, setWorkflowStages] = useState([]);
-  const [templateFields, setTemplateFields] = useState([]);
+  const [pipelineStages, setPipelineStages] = useState([]);
+  const [leadFields, setLeadFields] = useState([]);
   const [form, setForm] = useState(initialFormState);
   const [countryCodes, setCountryCodes] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const canCreateLead = hasPermission("LEAD_CREATE");
+  const organizationId = getStoredOrganizationId();
 
-  const fetchLeadData = async () => {
+  const fetchLeadData = useCallback(async () => {
     setError("");
     setIsLoading(true);
 
     try {
       const response = await api.get("/api/leads");
-      setLeads(getResponseList(response));
+      setLeads(
+        getResponseList(response).filter(
+          (lead) =>
+            !organizationId || String(lead.organizationId) === organizationId
+        )
+      );
     } catch (fetchError) {
       const message =
         fetchError.response?.data?.message || "Unable to load leads";
@@ -110,46 +115,50 @@ function Leads() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organizationId]);
 
   useEffect(() => {
-    fetchLeadData();
-  }, []);
+    const timeoutId = window.setTimeout(fetchLeadData, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchLeadData]);
 
   useEffect(() => {
-    const fetchWorkflow = async () => {
-      try {
-        const response = await api.get(`/api/workflows/${DEFAULT_WORKFLOW_ID}`);
-        const stages = response.data?.data?.stages ?? [];
-        setWorkflowStages(Array.isArray(stages) ? stages : []);
-      } catch (workflowError) {
-        setWorkflowStages([]);
+    const fetchOrganizationSetup = async () => {
+      if (!organizationId) {
+        return;
       }
-    };
 
-    fetchWorkflow();
-  }, []);
-
-  useEffect(() => {
-    const fetchTemplate = async () => {
       try {
-        const response = await api.get(`/api/templates/${DEFAULT_TEMPLATE_ID}`);
-        const fields = [...(response.data?.data?.fields ?? [])].sort(
+        const response = await api.get(
+          `/api/organizations/${organizationId}/effective-setup`
+        );
+        const setup = response.data?.data ?? {};
+        const fields = [...(setup.leadFields ?? [])]
+          .filter((field) => field.active)
+          .sort(
           (firstField, secondField) =>
             (firstField.displayOrder ?? 0) - (secondField.displayOrder ?? 0)
         );
-        setTemplateFields(fields);
-        setForm(getEmptyTemplateForm(fields));
+        const stages = [...(setup.pipelineStages ?? [])]
+          .filter((stage) => stage.active)
+          .sort(
+            (firstStage, secondStage) =>
+              (firstStage.displayOrder ?? 0) - (secondStage.displayOrder ?? 0)
+          );
+        setLeadFields(fields);
+        setPipelineStages(stages);
+        setForm(getEmptyLeadForm(fields));
         setCountryCodes(getEmptyCountryCodeForm(fields));
-      } catch (templateError) {
+      } catch (setupError) {
         const message =
-          templateError.response?.data?.message || "Unable to load lead form";
+          setupError.response?.data?.message || "Unable to load CRM setup";
         setError(message);
       }
     };
 
-    fetchTemplate();
-  }, []);
+    fetchOrganizationSetup();
+  }, [organizationId]);
 
   const handleStageFilter = (stage) => {
     if (!stage) {
@@ -182,11 +191,13 @@ function Leads() {
     setError("");
 
     try {
+      if (leadFields.length === 0) {
+        throw new Error("No organization lead fields are configured");
+      }
+
       await api.post("/api/leads", {
-        organizationId: DEFAULT_ORGANIZATION_ID,
-        templateId: DEFAULT_TEMPLATE_ID,
-        workflowId: DEFAULT_WORKFLOW_ID,
-        fields: templateFields.map((field) => ({
+        organizationId: organizationId ? Number(organizationId) : null,
+        fields: leadFields.map((field) => ({
           fieldName: field.fieldName,
           fieldValue: isPhoneField(field.fieldName)
             ? formatPhoneValue(
@@ -197,8 +208,8 @@ function Leads() {
         })),
       });
 
-      setForm(getEmptyTemplateForm(templateFields));
-      setCountryCodes(getEmptyCountryCodeForm(templateFields));
+      setForm(getEmptyLeadForm(leadFields));
+      setCountryCodes(getEmptyCountryCodeForm(leadFields));
       setShowForm(false);
       await fetchLeadData();
     } catch (submitError) {
@@ -222,13 +233,15 @@ function Leads() {
           <h1 className="text-2xl font-semibold text-slate-950">Leads</h1>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowForm((currentValue) => !currentValue)}
-          className="rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-        >
-          {showForm ? "Close Form" : "Create Lead"}
-        </button>
+        {canCreateLead ? (
+          <button
+            type="button"
+            onClick={() => setShowForm((currentValue) => !currentValue)}
+            className="rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          >
+            {showForm ? "Close Form" : "Create Lead"}
+          </button>
+        ) : null}
       </header>
 
       {error ? (
@@ -237,7 +250,7 @@ function Leads() {
         </div>
       ) : null}
 
-      {showForm ? (
+      {showForm && canCreateLead ? (
         <section className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 className="text-lg font-semibold text-slate-950">Create Lead</h2>
 
@@ -245,13 +258,13 @@ function Leads() {
             className="mt-4 grid gap-4 sm:grid-cols-2"
             onSubmit={handleSubmit}
           >
-            {templateFields.length === 0 ? (
+            {leadFields.length === 0 ? (
               <p className="text-sm text-slate-500 sm:col-span-2">
                 Loading lead form...
               </p>
             ) : null}
 
-            {templateFields.map((field) => (
+            {leadFields.map((field) => (
               <div
                 key={field.fieldName}
                 className={
@@ -287,6 +300,15 @@ function Leads() {
                     required={Boolean(field.mandatory)}
                   >
                     <option value="">Select {field.fieldLabel}</option>
+                    {(field.dropdownOptions || "")
+                      .split(",")
+                      .map((option) => option.trim())
+                      .filter(Boolean)
+                      .map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
                   </select>
                 ) : null}
 
@@ -357,7 +379,7 @@ function Leads() {
             <div className="sm:col-span-2">
               <button
                 type="submit"
-                disabled={isSubmitting || templateFields.length === 0}
+                disabled={isSubmitting || leadFields.length === 0}
                 className="w-full rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
               >
                 {isSubmitting ? "Creating..." : "Save Lead"}
@@ -380,7 +402,7 @@ function Leads() {
           All ({leads.length})
         </button>
 
-        {workflowStages.map((stage) => {
+        {pipelineStages.map((stage) => {
           const isActive = selectedStage === stage.stageName;
           const count = getStageCount(leads, stage.stageName);
 

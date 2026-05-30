@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { getStoredOrganizationId } from "../utils/auth";
 import { getResponseList, isOverdueFollowup, isToday } from "../utils/crm";
-
-const DEFAULT_WORKFLOW_ID = 1;
+import { getLeadSummary } from "../utils/leadUtils";
 
 function Dashboard() {
   const navigate = useNavigate();
+  const organizationId = getStoredOrganizationId();
   const [dashboardData, setDashboardData] = useState({
     leads: [],
     followups: [],
     workflowStages: [],
   });
+  const [leadDetailsById, setLeadDetailsById] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,25 +24,55 @@ function Dashboard() {
           await Promise.all([
             api.get("/api/leads"),
             api.get("/api/followups"),
-            api.get(`/api/workflows/${DEFAULT_WORKFLOW_ID}`),
+            api.get(`/api/organizations/${organizationId}/effective-setup`),
           ]);
 
+        const leads = getResponseList(leadsResponse).filter(
+          (lead) => !organizationId || String(lead.organizationId) === organizationId
+        );
+        const followups = getResponseList(followupsResponse);
+        const todayLeadIds = [
+          ...new Set(
+            followups
+              .filter((followup) => isToday(followup.followupDate))
+              .map((followup) => followup.leadId)
+              .filter(Boolean)
+          ),
+        ];
+        const leadDetailResults = await Promise.allSettled(
+          todayLeadIds.map((leadId) => api.get(`/api/leads/${leadId}`))
+        );
+        const detailsById = leadDetailResults.reduce((details, result, index) => {
+          if (result.status === "fulfilled") {
+            details[todayLeadIds[index]] = result.value.data?.data;
+          }
+
+          return details;
+        }, {});
+
         setDashboardData({
-          leads: getResponseList(leadsResponse),
-          followups: getResponseList(followupsResponse),
-          workflowStages: workflowResponse.data?.data?.stages ?? [],
+          leads,
+          followups,
+          workflowStages: (workflowResponse.data?.data?.pipelineStages ?? [])
+            .filter((stage) => stage.active)
+            .sort(
+              (firstStage, secondStage) =>
+                (firstStage.displayOrder ?? 0) - (secondStage.displayOrder ?? 0)
+            ),
         });
+        setLeadDetailsById(detailsById);
       } catch (fetchError) {
         const message =
           fetchError.response?.data?.message || "Unable to load dashboard data";
         setError(message);
+        setLeadDetailsById({});
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [organizationId]);
 
   const pendingFollowups = dashboardData.followups.filter(
     (followup) => followup.status === "PENDING"
@@ -160,6 +192,43 @@ function Dashboard() {
             ))}
           </div>
         </section>
+
+        {todaysFollowups.length > 0 ? (
+          <section>
+            <h2 className="mb-3 text-lg font-semibold text-slate-950">
+              Today's Tasks
+            </h2>
+            <div className="grid gap-3">
+              {todaysFollowups.slice(0, 5).map((followup) => {
+                const lead = leadDetailsById[followup.leadId];
+                const summary = getLeadSummary({
+                  ...(lead ?? {}),
+                  id: lead?.id ?? followup.leadId,
+                });
+
+                return (
+                  <button
+                    key={followup.id}
+                    type="button"
+                    onClick={() => navigate("/followups?type=TODAY")}
+                    className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                  >
+                    <p className="text-sm font-semibold text-slate-950">
+                      {summary.leadNo}
+                    </p>
+                    {[summary.title, summary.phone, summary.subtitle]
+                      .filter(Boolean)
+                      .map((value) => (
+                        <p key={value} className="mt-1 text-sm text-slate-600">
+                          {value}
+                        </p>
+                      ))}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );

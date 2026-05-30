@@ -28,6 +28,14 @@ function Login() {
 
       const token = response.data?.token ?? response.data?.data?.token;
       const responseRole = response.data?.role ?? response.data?.data?.role;
+      const organizationId =
+        response.data?.organizationId ?? response.data?.data?.organizationId;
+      const permissions =
+        response.data?.permissions ?? response.data?.data?.permissions ?? [];
+      const forcePasswordChange = Boolean(
+        response.data?.forcePasswordChange ??
+          response.data?.data?.forcePasswordChange
+      );
 
       if (!token) {
         throw new Error("Login succeeded but no token was returned.");
@@ -39,9 +47,18 @@ function Login() {
         throw new Error("Login succeeded but no role was returned.");
       }
 
-      saveAuthSession({ token, role });
+      saveAuthSession({
+        token,
+        role,
+        organizationId,
+        permissions,
+        forcePasswordChange,
+      });
       alert("Login successful");
-      navigate(getDashboardPathForRole(role), { replace: true });
+      navigate(
+        forcePasswordChange ? "/change-password" : getDashboardPathForRole(role),
+        { replace: true }
+      );
     } catch (error) {
       const message =
         error.response?.data?.message || error.message || "Login failed";

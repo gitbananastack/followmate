@@ -10,6 +10,8 @@ import lombok.Setter;
 @Setter
 public class TemplateRequest {
 
+    private Long organizationId;
+
     @NotBlank(message = "Template name is required")
     @Size(max = 255, message = "Template name must not exceed 255 characters")
     private String templateName;

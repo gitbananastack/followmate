@@ -19,7 +19,6 @@ public class LeadFieldRequest {
     @Size(max = 255, message = "Field name must not exceed 255 characters")
     private String fieldName;
 
-    @NotBlank(message = "Field value is required")
     @Size(max = 2000, message = "Field value must not exceed 2000 characters")
     private String fieldValue;
 }

@@ -4,6 +4,7 @@ import com.followmate.auth.dto.LoginRequest;
 import com.followmate.auth.dto.LoginResponse;
 import com.followmate.auth.entity.User;
 import com.followmate.auth.repository.UserRepository;
+import com.followmate.permission.service.PermissionService;
 import com.followmate.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -19,6 +20,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final PermissionService permissionService;
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
@@ -37,6 +39,9 @@ public class AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().getRoleName())
+                .organizationId(user.getOrganizationId())
+                .forcePasswordChange(Boolean.TRUE.equals(user.getForcePasswordChange()))
+                .permissions(permissionService.getEffectivePermissionCodes(user))
                 .build();
     }
 }
