@@ -28,10 +28,9 @@ function Login() {
 
       const token = response.data?.token ?? response.data?.data?.token;
       const responseRole = response.data?.role ?? response.data?.data?.role;
+      const name = response.data?.name ?? response.data?.data?.name ?? "";
       const organizationId =
         response.data?.organizationId ?? response.data?.data?.organizationId;
-      const permissions =
-        response.data?.permissions ?? response.data?.data?.permissions ?? [];
       const forcePasswordChange = Boolean(
         response.data?.forcePasswordChange ??
           response.data?.data?.forcePasswordChange
@@ -50,8 +49,8 @@ function Login() {
       saveAuthSession({
         token,
         role,
+        name,
         organizationId,
-        permissions,
         forcePasswordChange,
       });
       alert("Login successful");

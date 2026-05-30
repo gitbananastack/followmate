@@ -5,7 +5,6 @@ import com.followmate.csvimport.dto.CsvImportBatchResponse;
 import com.followmate.csvimport.dto.CsvImportErrorResponse;
 import com.followmate.csvimport.dto.CsvImportPreviewResponse;
 import com.followmate.csvimport.service.CsvImportService;
-import com.followmate.security.RequirePermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +26,6 @@ public class CsvImportController {
     private final CsvImportService csvImportService;
 
     @PostMapping(value = "/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @RequirePermission("CSV_IMPORT")
     public ResponseEntity<ApiResponse<CsvImportPreviewResponse>> preview(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "organizationId", required = false) Long organizationId
@@ -37,7 +35,6 @@ public class CsvImportController {
     }
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @RequirePermission("CSV_IMPORT")
     public ResponseEntity<ApiResponse<CsvImportBatchResponse>> importCsv(
             @RequestParam("file") MultipartFile file,
             @RequestParam("columnMapping") String columnMapping,
@@ -48,7 +45,6 @@ public class CsvImportController {
     }
 
     @GetMapping("/history")
-    @RequirePermission("CSV_IMPORT")
     public ResponseEntity<ApiResponse<List<CsvImportBatchResponse>>> history(
             @RequestParam(value = "organizationId", required = false) Long organizationId
     ) {
@@ -57,7 +53,6 @@ public class CsvImportController {
     }
 
     @GetMapping("/history/{batchId}/errors")
-    @RequirePermission("CSV_IMPORT")
     public ResponseEntity<ApiResponse<List<CsvImportErrorResponse>>> errors(
             @PathVariable Long batchId,
             @RequestParam(value = "organizationId", required = false) Long organizationId

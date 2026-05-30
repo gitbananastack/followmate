@@ -1,30 +1,32 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { clearAuthSession, hasPermission } from "../utils/auth";
+import {
+  clearAuthSession,
+  getStoredOrganizationId,
+  getStoredRole,
+} from "../utils/auth";
 import { getResponseList, isOverdueFollowup } from "../utils/crm";
 
 const businessNavItems = [
-  { label: "Dashboard", path: "/dashboard", permission: "DASHBOARD_VIEW" },
-  { label: "Pipeline", path: "/pipeline", permission: "PIPELINE_VIEW" },
-  { label: "Leads", path: "/leads", permission: "LEAD_VIEW" },
-  { label: "Follow-ups", path: "/followups", permission: "FOLLOWUP_VIEW" },
-  { label: "Reports", path: "/reports", permission: "REPORT_VIEW" },
-  { label: "CSV Import", path: "/csv-import", permission: "CSV_IMPORT" },
-  { label: "Settings", path: "/settings", permission: "SETTINGS_VIEW" },
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Pipeline", path: "/pipeline" },
+  { label: "Leads", path: "/leads" },
+  { label: "Follow-ups", path: "/followups" },
+  { label: "Reports", path: "/reports", role: "ORG_ADMIN", feature: "REPORTS" },
+  { label: "CSV Import", path: "/csv-import", role: "ORG_ADMIN", feature: "CSV_IMPORT" },
+  { label: "Settings", path: "/settings", role: "ORG_ADMIN" },
 ];
 
 function BusinessLayout() {
   const navigate = useNavigate();
   const [overdueCount, setOverdueCount] = useState(0);
+  const [features, setFeatures] = useState([]);
+  const role = getStoredRole();
+  const organizationId = getStoredOrganizationId();
 
   useEffect(() => {
     const fetchOverdueCount = async () => {
-      if (!hasPermission("FOLLOWUP_VIEW")) {
-        setOverdueCount(0);
-        return;
-      }
-
       try {
         const response = await api.get("/api/followups");
         const overdueFollowups = getResponseList(response).filter(
@@ -43,6 +45,27 @@ function BusinessLayout() {
       window.removeEventListener("followups:changed", fetchOverdueCount);
     };
   }, []);
+
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      if (role !== "ORG_ADMIN" || !organizationId) {
+        setFeatures([]);
+        return;
+      }
+
+      try {
+        const response = await api.get(
+          `/api/organizations/${organizationId}/features`
+        );
+        const featureList = response.data?.data?.features ?? [];
+        setFeatures(Array.isArray(featureList) ? featureList : []);
+      } catch {
+        setFeatures([]);
+      }
+    };
+
+    fetchFeatures();
+  }, [organizationId, role]);
 
   const handleLogout = () => {
     clearAuthSession();
@@ -68,9 +91,17 @@ function BusinessLayout() {
     </span>
   );
 
-  const visibleNavItems = businessNavItems.filter((item) =>
-    hasPermission(item.permission)
-  );
+  const visibleNavItems = businessNavItems.filter((item) => {
+    if (item.role && item.role !== role) {
+      return false;
+    }
+
+    if (item.feature && !features.includes(item.feature)) {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-0">

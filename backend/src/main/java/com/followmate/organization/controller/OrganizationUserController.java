@@ -5,7 +5,6 @@ import com.followmate.organization.dto.OrganizationUserRequest;
 import com.followmate.organization.dto.OrganizationUserResponse;
 import com.followmate.organization.dto.ResetPasswordRequest;
 import com.followmate.organization.service.OrganizationUserService;
-import com.followmate.security.RequirePermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,7 +28,6 @@ public class OrganizationUserController {
     private final OrganizationUserService organizationUserService;
 
     @PostMapping
-    @RequirePermission("USER_MANAGE")
     public ResponseEntity<ApiResponse<OrganizationUserResponse>> createOrganizationUser(
             @PathVariable Long organizationId,
             @Valid @RequestBody OrganizationUserRequest request
@@ -40,7 +38,6 @@ public class OrganizationUserController {
     }
 
     @GetMapping
-    @RequirePermission("USER_MANAGE")
     public ResponseEntity<ApiResponse<List<OrganizationUserResponse>>> getOrganizationUsers(
             @PathVariable Long organizationId
     ) {
@@ -49,7 +46,6 @@ public class OrganizationUserController {
     }
 
     @PatchMapping("/{userId}/deactivate")
-    @RequirePermission("USER_MANAGE")
     public ResponseEntity<ApiResponse<OrganizationUserResponse>> deactivateOrganizationUser(
             @PathVariable Long organizationId,
             @PathVariable Long userId
@@ -59,7 +55,6 @@ public class OrganizationUserController {
     }
 
     @PatchMapping("/{userId}/activate")
-    @RequirePermission("USER_MANAGE")
     public ResponseEntity<ApiResponse<OrganizationUserResponse>> activateOrganizationUser(
             @PathVariable Long organizationId,
             @PathVariable Long userId
@@ -69,7 +64,6 @@ public class OrganizationUserController {
     }
 
     @PutMapping("/{userId}/reset-password")
-    @RequirePermission("USER_MANAGE")
     public ResponseEntity<ApiResponse<OrganizationUserResponse>> resetOrganizationUserPassword(
             @PathVariable Long organizationId,
             @PathVariable Long userId,

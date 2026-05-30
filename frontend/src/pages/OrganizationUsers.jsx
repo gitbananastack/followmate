@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
 import {
   getStoredOrganizationId,
+  getStoredName,
   getStoredRole,
   saveAuthSession,
 } from "../utils/auth";
@@ -20,26 +21,8 @@ const initialPasswordForm = {
   newPassword: "",
 };
 
-const permissionCategoryOrder = [
-  "Dashboard",
-  "Leads",
-  "Follow-ups",
-  "Reports",
-  "Settings",
-  "Art Gallery",
-  "Connectors",
-];
-
 function getErrorMessage(error, fallback) {
   return error.response?.data?.message || error.message || fallback;
-}
-
-function getPermissionCategory(permission) {
-  if (permission.category === "Artwork") {
-    return "Art Gallery";
-  }
-
-  return permission.category || "Settings";
 }
 
 function OrganizationUsers() {
@@ -52,9 +35,6 @@ function OrganizationUsers() {
     routeOrganizationId || getStoredOrganizationId()
   );
   const [users, setUsers] = useState([]);
-  const [permissions, setPermissions] = useState([]);
-  const [selectedUserPermissions, setSelectedUserPermissions] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [userForm, setUserForm] = useState(initialUserForm);
   const [passwordForm, setPasswordForm] = useState(initialPasswordForm);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -88,6 +68,7 @@ function OrganizationUsers() {
           saveAuthSession({
             token: localStorage.getItem("token"),
             role,
+            name: getStoredName(),
             organizationId: nextOrganizationId,
           });
         }
@@ -122,22 +103,11 @@ function OrganizationUsers() {
     }
   }, [organizationId]);
 
-  const fetchPermissions = useCallback(async () => {
-    try {
-      const response = await api.get("/api/permissions");
-      setPermissions(getResponseList(response));
-    } catch {
-      setPermissions([]);
-    }
-  }, []);
-
   useEffect(() => {
-    const loadPageData = async () => {
-      await Promise.all([fetchUsers(), fetchPermissions()]);
-    };
+    const timeoutId = window.setTimeout(fetchUsers, 0);
 
-    loadPageData();
-  }, [fetchPermissions, fetchUsers]);
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchUsers]);
 
   const handleUserFormChange = (event) => {
     const { name, value } = event.target;
@@ -212,81 +182,6 @@ function OrganizationUsers() {
       setUpdatingUserId(null);
     }
   };
-
-  const handleOpenPermissions = async (user) => {
-    setSelectedUser(user);
-    setSelectedUserPermissions([]);
-    setError("");
-    setSuccess("");
-
-    try {
-      const response = await api.get(`/api/users/${user.id}/permissions`);
-      setSelectedUserPermissions(getResponseList(response));
-    } catch (permissionsError) {
-      setError(
-        getErrorMessage(permissionsError, "Unable to load user permissions")
-      );
-    }
-  };
-
-  const handlePermissionToggle = (permissionCode) => {
-    setSelectedUserPermissions((currentPermissions) =>
-      currentPermissions.map((permission) =>
-        permission.permissionCode === permissionCode
-          ? { ...permission, allowed: !permission.allowed }
-          : permission
-      )
-    );
-  };
-
-  const handleSavePermissions = async () => {
-    if (!selectedUser) {
-      return;
-    }
-
-    setUpdatingUserId(selectedUser.id);
-    setError("");
-    setSuccess("");
-
-    try {
-      const response = await api.put(`/api/users/${selectedUser.id}/permissions`, {
-        permissions: selectedUserPermissions.map((permission) => ({
-          permissionCode: permission.permissionCode,
-          allowed: permission.allowed,
-        })),
-      });
-      setSelectedUserPermissions(getResponseList(response));
-      setSuccess("Permissions updated successfully");
-    } catch (permissionsError) {
-      setError(getErrorMessage(permissionsError, "Unable to update permissions"));
-    } finally {
-      setUpdatingUserId(null);
-    }
-  };
-
-  const permissionRows =
-    selectedUserPermissions.length > 0
-      ? selectedUserPermissions
-      : permissions.map((permission) => ({ ...permission, allowed: false }));
-
-  const groupedPermissionRows = permissionRows.reduce(
-    (groupedPermissions, permission) => {
-      const category = getPermissionCategory(permission);
-
-      return {
-        ...groupedPermissions,
-        [category]: [...(groupedPermissions[category] || []), permission],
-      };
-    },
-    {}
-  );
-
-  const groupedPermissionCategories = [
-    ...permissionCategoryOrder,
-    ...Object.keys(groupedPermissionRows).filter(
-      (category) => !permissionCategoryOrder.includes(category)
-    ),
-  ].filter((category) => groupedPermissionRows[category]?.length);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
@@ -457,9 +352,6 @@ function OrganizationUsers() {
               const canManageStatus =
                 isSuperAdmin ||
                 (isOrgAdmin && user.role === "STAFF");
-              const canManagePermissions =
-                isSuperAdmin || (isOrgAdmin && user.role === "STAFF");
-
               return (
                 <article
                   key={user.id}
@@ -540,15 +432,6 @@ function OrganizationUsers() {
                       </button>
                     ) : null}
 
-                    {canManagePermissions ? (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPermissions(user)}
-                        className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-                      >
-                        Permissions
-                      </button>
-                    ) : null}
                   </div>
                 </article>
               );
@@ -607,85 +490,6 @@ function OrganizationUsers() {
         </aside>
       </section>
 
-      {selectedUser ? (
-        <div className="fixed inset-0 z-20 flex items-end bg-slate-950/40 px-3 py-4 sm:items-center sm:justify-center">
-          <section className="max-h-[92vh] w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:max-w-2xl">
-            <div className="border-b border-slate-100 p-4 sm:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-950">
-                    Permissions
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {selectedUser.name}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedUser(null);
-                    setSelectedUserPermissions([]);
-                  }}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            <div className="max-h-[62vh] overflow-auto p-4 sm:p-5">
-              <div className="space-y-5">
-                {groupedPermissionCategories.map((category) => (
-                  <section key={category}>
-                    <h3 className="text-sm font-semibold text-slate-950">
-                      {category}
-                    </h3>
-                    <div className="mt-2 grid gap-2">
-                      {groupedPermissionRows[category].map((permission) => (
-                        <label
-                          key={permission.permissionCode}
-                          className="flex items-start gap-3 rounded-lg border border-slate-100 p-3"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={Boolean(permission.allowed)}
-                            onChange={() =>
-                              handlePermissionToggle(permission.permissionCode)
-                            }
-                            className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span>
-                            <span className="block text-sm font-semibold text-slate-900">
-                              {permission.permissionName ||
-                                permission.permissionCode}
-                            </span>
-                            <span className="mt-0.5 block text-xs text-slate-500">
-                              {permission.permissionCode}
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100 p-4 sm:p-5">
-              <button
-                type="button"
-                onClick={handleSavePermissions}
-                disabled={updatingUserId === selectedUser.id}
-                className="w-full rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {updatingUserId === selectedUser.id
-                  ? "Saving..."
-                  : "Save Permissions"}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
     </main>
   );
 }

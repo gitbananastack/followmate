@@ -20,50 +20,32 @@ export function getStoredOrganizationId() {
   return localStorage.getItem("organizationId") || "";
 }
 
+export function getStoredName() {
+  return localStorage.getItem("name") || "";
+}
+
 export function isForcePasswordChangeRequired() {
   return localStorage.getItem("forcePasswordChange") === "true";
-}
-
-export function getStoredPermissions() {
-  try {
-    const permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
-    return Array.isArray(permissions) ? permissions : [];
-  } catch {
-    return [];
-  }
-}
-
-export function hasPermission(permissionCode) {
-  const role = getStoredRole();
-
-  if (role === "SUPER_ADMIN" || role === "ORG_ADMIN") {
-    return true;
-  }
-
-  return getStoredPermissions().includes(permissionCode);
 }
 
 export function saveAuthSession({
   token,
   role,
   organizationId,
-  permissions,
+  name,
   forcePasswordChange,
 }) {
   localStorage.setItem("token", token);
   localStorage.setItem("role", role);
 
+  if (name !== undefined && name !== null) {
+    localStorage.setItem("name", name);
+  }
+
   if (forcePasswordChange !== undefined) {
     localStorage.setItem(
       "forcePasswordChange",
       String(Boolean(forcePasswordChange))
-    );
-  }
-
-  if (permissions !== undefined) {
-    localStorage.setItem(
-      "permissions",
-      JSON.stringify(Array.isArray(permissions) ? permissions : [])
     );
   }
 
@@ -78,6 +60,6 @@ export function clearAuthSession() {
   localStorage.removeItem("token");
   localStorage.removeItem("role");
   localStorage.removeItem("organizationId");
-  localStorage.removeItem("permissions");
+  localStorage.removeItem("name");
   localStorage.removeItem("forcePasswordChange");
 }

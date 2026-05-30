@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LeadCard from "../components/LeadCard";
 import api from "../services/api";
-import { getStoredOrganizationId, hasPermission } from "../utils/auth";
+import { getStoredOrganizationId, getStoredRole } from "../utils/auth";
 import { getResponseList, isPhoneField } from "../utils/crm";
 
 const initialFormState = {};
@@ -93,7 +93,7 @@ function Leads() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const canCreateLead = hasPermission("LEAD_CREATE");
+  const canCreateLead = getStoredRole() === "ORG_ADMIN";
   const organizationId = getStoredOrganizationId();
 
   const fetchLeadData = useCallback(async () => {

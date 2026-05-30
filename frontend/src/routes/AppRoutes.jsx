@@ -24,10 +24,10 @@ import SuperAdminSettings from "../pages/SuperAdminSettings";
 import SuperAdminSubscriptions from "../pages/SuperAdminSubscriptions";
 import SuperAdminTemplates from "../pages/SuperAdminTemplates";
 import ProtectedRoute from "./ProtectedRoute";
-import PermissionProtectedRoute from "./PermissionProtectedRoute";
+import FeatureProtectedRoute from "./FeatureProtectedRoute";
 import RoleProtectedRoute from "./RoleProtectedRoute";
 
-const businessRoles = ["ORG_ADMIN", "STAFF", "SUPER_ADMIN"];
+const businessRoles = ["ORG_ADMIN", "STAFF"];
 const superAdminRoles = ["SUPER_ADMIN"];
 
 function AppRoutes() {
@@ -41,57 +41,21 @@ function AppRoutes() {
 
         <Route element={<RoleProtectedRoute allowedRoles={businessRoles} />}>
           <Route element={<BusinessLayout />}>
-            <Route
-              element={
-                <PermissionProtectedRoute permissionCode="DASHBOARD_VIEW" />
-              }
-            >
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
-            <Route
-              element={
-                <PermissionProtectedRoute permissionCode="PIPELINE_VIEW" />
-              }
-            >
-              <Route path="/pipeline" element={<Pipeline />} />
-            </Route>
-            <Route
-              element={<PermissionProtectedRoute permissionCode="LEAD_VIEW" />}
-            >
-              <Route path="/leads" element={<Leads />} />
-              <Route path="/leads/:id" element={<LeadDetails />} />
-            </Route>
-            <Route
-              element={
-                <PermissionProtectedRoute permissionCode="FOLLOWUP_VIEW" />
-              }
-            >
-              <Route path="/followups" element={<Followups />} />
-            </Route>
-            <Route
-              element={<PermissionProtectedRoute permissionCode="REPORT_VIEW" />}
-            >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/pipeline" element={<Pipeline />} />
+            <Route path="/leads" element={<Leads />} />
+            <Route path="/leads/:id" element={<LeadDetails />} />
+            <Route path="/followups" element={<Followups />} />
+            <Route element={<RoleProtectedRoute allowedRoles={["ORG_ADMIN"]} />}>
+              <Route element={<FeatureProtectedRoute featureCode="REPORTS" />}>
               <Route path="/reports" element={<Reports />} />
-            </Route>
-            <Route
-              element={
-                <PermissionProtectedRoute permissionCode="CSV_IMPORT" />
-              }
-            >
-              <Route path="/csv-import" element={<CsvImport />} />
-            </Route>
-            <Route
-              element={
-                <PermissionProtectedRoute permissionCode="SETTINGS_VIEW" />
-              }
-            >
-              <Route path="/settings" element={<BusinessSettings />} />
-              <Route
-                element={<RoleProtectedRoute allowedRoles={["ORG_ADMIN"]} />}
-              >
-                <Route path="/settings/users" element={<OrganizationUsers />} />
-                <Route path="/settings/billing" element={<Billing />} />
               </Route>
+              <Route element={<FeatureProtectedRoute featureCode="CSV_IMPORT" />}>
+                <Route path="/csv-import" element={<CsvImport />} />
+              </Route>
+              <Route path="/settings" element={<BusinessSettings />} />
+              <Route path="/settings/users" element={<OrganizationUsers />} />
+              <Route path="/settings/billing" element={<Billing />} />
             </Route>
           </Route>
         </Route>

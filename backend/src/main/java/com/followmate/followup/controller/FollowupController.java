@@ -4,7 +4,7 @@ import com.followmate.common.ApiResponse;
 import com.followmate.followup.dto.FollowupRequest;
 import com.followmate.followup.dto.FollowupResponse;
 import com.followmate.followup.service.FollowupService;
-import com.followmate.security.RequirePermission;
+import com.followmate.security.RoleAuthorizationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,44 +27,45 @@ import java.util.List;
 public class FollowupController {
 
     private final FollowupService followupService;
+    private final RoleAuthorizationService roleAuthorizationService;
 
     @PostMapping
-    @RequirePermission("FOLLOWUP_CREATE")
     public ResponseEntity<ApiResponse<FollowupResponse>> createFollowup(
             @Valid @RequestBody FollowupRequest request
     ) {
+        roleAuthorizationService.requireOrgAdmin();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Followup created successfully",
                         followupService.createFollowup(request)));
     }
 
     @GetMapping
-    @RequirePermission("FOLLOWUP_VIEW")
     public ResponseEntity<ApiResponse<List<FollowupResponse>>> getAllFollowups() {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Followups fetched successfully",
                 followupService.getAllFollowups()));
     }
 
     @GetMapping("/lead/{leadId}")
-    @RequirePermission("FOLLOWUP_VIEW")
     public ResponseEntity<ApiResponse<List<FollowupResponse>>> getFollowupsByLeadId(@PathVariable Long leadId) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Followups fetched successfully",
                 followupService.getFollowupsByLeadId(leadId)));
     }
 
     @PutMapping("/{id}/complete")
-    @RequirePermission("FOLLOWUP_COMPLETE")
     public ResponseEntity<ApiResponse<FollowupResponse>> markComplete(@PathVariable Long id) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Followup marked as completed successfully",
                 followupService.markComplete(id)));
     }
 
     @PutMapping("/{id}/reschedule")
-    @RequirePermission("FOLLOWUP_CREATE")
     public ResponseEntity<ApiResponse<FollowupResponse>> rescheduleFollowup(
             @PathVariable Long id,
             @Valid @RequestBody FollowupRequest request
     ) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Followup rescheduled successfully",
                 followupService.rescheduleFollowup(id, request)));
     }

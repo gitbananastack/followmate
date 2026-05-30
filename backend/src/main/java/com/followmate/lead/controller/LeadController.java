@@ -7,7 +7,7 @@ import com.followmate.lead.dto.LeadRequest;
 import com.followmate.lead.dto.LeadResponse;
 import com.followmate.lead.dto.LeadStageRequest;
 import com.followmate.lead.service.LeadService;
-import com.followmate.security.RequirePermission;
+import com.followmate.security.RoleAuthorizationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,62 +32,63 @@ import java.util.List;
 public class LeadController {
 
     private final LeadService leadService;
+    private final RoleAuthorizationService roleAuthorizationService;
 
     @PostMapping
-    @RequirePermission("LEAD_CREATE")
     public ResponseEntity<ApiResponse<LeadResponse>> createLead(@Valid @RequestBody LeadRequest request) {
+        roleAuthorizationService.requireOrgAdmin();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Lead created successfully", leadService.createLead(request)));
     }
 
     @GetMapping
-    @RequirePermission("LEAD_VIEW")
     public ResponseEntity<ApiResponse<List<LeadResponse>>> getAllLeads(
             @RequestParam(required = false) Long organizationId
     ) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Leads fetched successfully",
                 leadService.getAllLeads(organizationId)));
     }
 
     @GetMapping("/{id}")
-    @RequirePermission("LEAD_VIEW")
     public ResponseEntity<ApiResponse<LeadResponse>> getLeadById(@PathVariable Long id) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Lead fetched successfully", leadService.getLeadById(id)));
     }
 
     @PutMapping("/{id}/stage")
-    @RequirePermission("LEAD_EDIT")
     public ResponseEntity<ApiResponse<LeadResponse>> updateLeadStage(
             @PathVariable Long id,
             @Valid @RequestBody LeadStageRequest request
     ) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Lead stage updated successfully",
                 leadService.updateLeadStage(id, request.getCurrentStage())));
     }
 
     @PutMapping("/{id}/fields")
-    @RequirePermission("LEAD_EDIT")
     public ResponseEntity<ApiResponse<LeadResponse>> updateLeadFields(
             @PathVariable Long id,
             @Valid @RequestBody LeadFieldsUpdateRequest request
     ) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.ok(ApiResponse.success("Lead fields updated successfully",
                 leadService.updateLeadFields(id, request.getFields())));
     }
 
     @DeleteMapping("/{id}")
-    @RequirePermission("LEAD_DELETE")
     public ResponseEntity<ApiResponse<Void>> deleteLead(@PathVariable Long id) {
+        roleAuthorizationService.requireOrgAdmin();
         leadService.deleteLead(id);
         return ResponseEntity.ok(ApiResponse.success("Lead deleted successfully", null));
     }
 
     @PostMapping("/{id}/notes")
-    @RequirePermission("LEAD_EDIT")
     public ResponseEntity<ApiResponse<LeadResponse>> addNoteToLead(
             @PathVariable Long id,
             @Valid @RequestBody LeadNoteRequest request
     ) {
+        roleAuthorizationService.requireBusinessUser();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Lead note added successfully", leadService.addNoteToLead(id, request)));
     }

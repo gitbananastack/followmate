@@ -27,6 +27,10 @@ public class AuthenticatedUserService {
         return SUPER_ADMIN_ROLE.equals(user.getRole().getRoleName());
     }
 
+    public boolean isOrgAdmin(User user) {
+        return ORG_ADMIN_ROLE.equals(user.getRole().getRoleName());
+    }
+
     public Long requireOrganizationId(User user) {
         if (user.getOrganizationId() == null) {
             throw new AccessDeniedException("Access denied");

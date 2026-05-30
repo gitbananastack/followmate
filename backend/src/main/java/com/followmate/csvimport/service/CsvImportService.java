@@ -22,7 +22,6 @@ import com.followmate.setup.entity.OrganizationPipelineStage;
 import com.followmate.setup.repository.OrganizationLeadFieldRepository;
 import com.followmate.setup.repository.OrganizationPipelineStageRepository;
 import com.followmate.subscription.service.FeatureAccessService;
-import com.followmate.subscription.service.FeatureUnavailableException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -65,6 +64,7 @@ public class CsvImportService {
 
     public CsvImportPreviewResponse preview(MultipartFile file, Long requestedOrganizationId) {
         User currentUser = authenticatedUserService.getCurrentUser();
+        validateCsvImportRole(currentUser);
         Long organizationId = resolveOrganizationId(currentUser, requestedOrganizationId);
         validateOrganization(organizationId);
         validateCsvImportFeature(organizationId);
@@ -79,6 +79,7 @@ public class CsvImportService {
     @Transactional
     public CsvImportBatchResponse importCsv(MultipartFile file, String columnMappingJson, Long requestedOrganizationId) {
         User currentUser = authenticatedUserService.getCurrentUser();
+        validateCsvImportRole(currentUser);
         Long organizationId = resolveOrganizationId(currentUser, requestedOrganizationId);
         validateOrganization(organizationId);
         validateCsvImportFeature(organizationId);
@@ -124,6 +125,7 @@ public class CsvImportService {
 
     public List<CsvImportBatchResponse> getHistory(Long requestedOrganizationId) {
         User currentUser = authenticatedUserService.getCurrentUser();
+        validateCsvImportRole(currentUser);
         Long organizationId = resolveOrganizationId(currentUser, requestedOrganizationId);
         validateCsvImportFeature(organizationId);
         return csvImportBatchRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId)
@@ -134,6 +136,7 @@ public class CsvImportService {
 
     public List<CsvImportErrorResponse> getErrors(Long batchId, Long requestedOrganizationId) {
         User currentUser = authenticatedUserService.getCurrentUser();
+        validateCsvImportRole(currentUser);
         Long organizationId = resolveOrganizationId(currentUser, requestedOrganizationId);
         validateCsvImportFeature(organizationId);
         CsvImportBatch batch = csvImportBatchRepository.findByIdAndOrganizationId(batchId, organizationId)
@@ -357,7 +360,7 @@ public class CsvImportService {
     }
 
     private Long resolveOrganizationId(User currentUser, Long requestedOrganizationId) {
-        if (!authenticatedUserService.isSuperAdmin(currentUser)) {
+        if (authenticatedUserService.isOrgAdmin(currentUser)) {
             Long organizationId = authenticatedUserService.requireOrganizationId(currentUser);
             if (requestedOrganizationId != null && !organizationId.equals(requestedOrganizationId)) {
                 throw new AccessDeniedException("Access denied");
@@ -372,6 +375,12 @@ public class CsvImportService {
         return requestedOrganizationId;
     }
 
+    private void validateCsvImportRole(User currentUser) {
+        if (!authenticatedUserService.isOrgAdmin(currentUser)) {
+            throw new AccessDeniedException("Access denied");
+        }
+    }
+
     private void validateOrganization(Long organizationId) {
         if (!organizationRepository.existsById(organizationId)) {
             throw new IllegalArgumentException("Organization not found with id: " + organizationId);
@@ -380,7 +389,7 @@ public class CsvImportService {
 
     private void validateCsvImportFeature(Long organizationId) {
         if (!featureAccessService.hasFeature(organizationId, CSV_IMPORT_FEATURE)) {
-            throw new FeatureUnavailableException("CSV Import is not available in your plan");
+            throw new AccessDeniedException("Access denied");
         }
     }
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import {
   getDashboardPathForRole,
+  getStoredName,
   getStoredRole,
   saveAuthSession,
 } from "../utils/auth";
@@ -45,6 +46,7 @@ function ChangePassword() {
       saveAuthSession({
         token: localStorage.getItem("token"),
         role,
+        name: getStoredName(),
         organizationId: localStorage.getItem("organizationId"),
         forcePasswordChange: false,
       });

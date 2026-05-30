@@ -1,7 +1,6 @@
 package com.followmate.template.controller;
 
 import com.followmate.common.ApiResponse;
-import com.followmate.security.RequirePermission;
 import com.followmate.template.dto.TemplateFieldRequest;
 import com.followmate.template.dto.TemplateFieldResponse;
 import com.followmate.template.service.TemplateService;
@@ -23,7 +22,6 @@ public class TemplateFieldController {
     private final TemplateService templateService;
 
     @PutMapping("/{fieldId}")
-    @RequirePermission("SETTINGS_VIEW")
     public ResponseEntity<ApiResponse<TemplateFieldResponse>> updateTemplateField(
             @PathVariable Long fieldId,
             @Valid @RequestBody TemplateFieldRequest request
@@ -33,7 +31,6 @@ public class TemplateFieldController {
     }
 
     @DeleteMapping("/{fieldId}")
-    @RequirePermission("SETTINGS_VIEW")
     public ResponseEntity<ApiResponse<Void>> deleteTemplateField(@PathVariable Long fieldId) {
         templateService.deleteTemplateField(fieldId);
         return ResponseEntity.ok(ApiResponse.success("Template field deleted successfully", null));

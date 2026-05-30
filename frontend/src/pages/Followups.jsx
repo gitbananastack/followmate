@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../services/api";
-import { hasPermission } from "../utils/auth";
+import { getStoredRole } from "../utils/auth";
 import {
   formatDateTime,
   getFollowupCategory,
@@ -75,7 +75,8 @@ function Followups() {
   const [isLoading, setIsLoading] = useState(true);
   const [completingFollowupId, setCompletingFollowupId] = useState(null);
   const [error, setError] = useState("");
-  const canCompleteFollowup = hasPermission("FOLLOWUP_COMPLETE");
+  const role = getStoredRole();
+  const canCompleteFollowup = role === "ORG_ADMIN" || role === "STAFF";
 
   const activeFilter = getInitialFilter(
     searchParams.get("status"),

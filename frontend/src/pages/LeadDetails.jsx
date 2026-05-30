@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
-import { getStoredOrganizationId, hasPermission } from "../utils/auth";
+import { getStoredOrganizationId, getStoredRole } from "../utils/auth";
 import { getLeadSummary } from "../utils/leadUtils";
 
 function formatDate(value) {
@@ -56,9 +56,10 @@ function LeadDetails() {
   const [isFollowupSubmitting, setIsFollowupSubmitting] = useState(false);
   const [completingFollowupId, setCompletingFollowupId] = useState(null);
   const [error, setError] = useState("");
-  const canEditLead = hasPermission("LEAD_EDIT");
-  const canCreateFollowup = hasPermission("FOLLOWUP_CREATE");
-  const canCompleteFollowup = hasPermission("FOLLOWUP_COMPLETE");
+  const role = getStoredRole();
+  const canEditLead = role === "ORG_ADMIN" || role === "STAFF";
+  const canCreateFollowup = role === "ORG_ADMIN";
+  const canCompleteFollowup = role === "ORG_ADMIN" || role === "STAFF";
   const organizationId = getStoredOrganizationId();
   const leadSummary = getLeadSummary(lead);
 

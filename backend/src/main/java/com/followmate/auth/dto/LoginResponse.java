@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
 @Builder
@@ -21,5 +19,4 @@ public class LoginResponse {
     private String role;
     private Long organizationId;
     private Boolean forcePasswordChange;
-    private List<String> permissions;
 }

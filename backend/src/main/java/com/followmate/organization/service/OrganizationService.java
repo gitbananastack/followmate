@@ -77,6 +77,7 @@ public class OrganizationService {
     }
 
     public List<OrganizationResponse> getAllOrganizations() {
+        validateSuperAdmin();
         return organizationRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -84,10 +85,12 @@ public class OrganizationService {
     }
 
     public OrganizationResponse getOrganizationById(Long id) {
+        validateSuperAdmin();
         return toResponse(findOrganizationById(id));
     }
 
     public OrganizationResponse updateOrganization(Long id, OrganizationRequest request) {
+        validateSuperAdmin();
         Organization organization = findOrganizationById(id);
         organization.setOrganizationName(request.getOrganizationName());
         organization.setBusinessType(request.getBusinessType());
@@ -100,18 +103,21 @@ public class OrganizationService {
     }
 
     public OrganizationResponse activateOrganization(Long id) {
+        validateSuperAdmin();
         Organization organization = findOrganizationById(id);
         organization.setStatus(ACTIVE_STATUS);
         return toResponse(organizationRepository.save(organization));
     }
 
     public OrganizationResponse deactivateOrganization(Long id) {
+        validateSuperAdmin();
         Organization organization = findOrganizationById(id);
         organization.setStatus(INACTIVE_STATUS);
         return toResponse(organizationRepository.save(organization));
     }
 
     public OrganizationResponse suspendOrganization(Long id) {
+        validateSuperAdmin();
         Organization organization = findOrganizationById(id);
         organization.setStatus(SUSPENDED_STATUS);
         return toResponse(organizationRepository.save(organization));
